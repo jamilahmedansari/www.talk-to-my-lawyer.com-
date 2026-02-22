@@ -213,8 +213,9 @@ export const Markdown = memo(function Markdown({
   if (enableCode) plugins.code = code;
   if (enableMermaid) plugins.mermaid = mermaid;
 
+  const StreamdownAny = Streamdown as any;
   return (
-    <Streamdown
+    <StreamdownAny
       className={cn("text-foreground leading-relaxed", className)}
       components={{ ...components, ...customComponents }}
       plugins={plugins}
@@ -223,7 +224,7 @@ export const Markdown = memo(function Markdown({
       {...props}
     >
       {children}
-    </Streamdown>
+    </StreamdownAny>
   );
 });
 
