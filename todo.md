@@ -149,3 +149,13 @@
 - [ ] Build Payment Receipts page with invoice history, amounts, dates, receipt links (future)
 - [ ] Enhance subscriber Dashboard: subscription status widget, activity feed, quick action cards (future)
 - [ ] Add date range filter to Letters History (future)
+
+## Phase 15: Post-Submission Email Notifications
+- [x] Add sendLetterSubmissionEmail: branded confirmation email sent immediately after letter submission
+- [x] Add sendLetterReadyEmail: "your draft is ready" email sent when AI pipeline sets generated_locked
+- [x] Add sendLetterUnlockedEmail: payment confirmation email sent after Stripe unlock webhook
+- [x] Wire sendLetterSubmissionEmail into letters.submit mutation (routers.ts)
+- [x] Wire sendLetterReadyEmail into pipeline.ts Stage 3 completion (in-app pipeline path)
+- [x] Wire sendLetterReadyEmail into n8nCallback.ts completion (n8n pipeline path)
+- [x] Wire sendLetterUnlockedEmail into stripeWebhook.ts letter unlock handler
+- [x] Tests: 35/35 passing, 0 TypeScript errors

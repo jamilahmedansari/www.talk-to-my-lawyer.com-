@@ -8,7 +8,7 @@ import Stripe from "stripe";
 import { ENV } from "./_core/env";
 import { getStripe, activateSubscription } from "./stripe";
 import { getDb, updateLetterStatus, logReviewAction, getLetterRequestById, getUserById, createNotification } from "./db";
-import { sendLetterApprovedEmail } from "./email";
+import { sendLetterApprovedEmail, sendLetterUnlockedEmail } from "./email";
 import { users } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
 
@@ -116,11 +116,12 @@ export async function stripeWebhookHandler(req: Request, res: Response): Promise
                     body: `Your letter "${letter.subject}" is now in the attorney review queue.`,
                     link: `/letters/${letterId}`,
                   });
-                  // Notify attorneys/employees
+                  // Send unlock confirmation email to subscriber
                   const subscriber = await getUserById(userId);
                   if (subscriber?.email) {
-                    const origin = `${session.success_url?.split('/letters')[0] ?? 'https://app.talktomylawyer.com'}`;
-                    await sendLetterApprovedEmail({
+                    const origin = session.success_url?.split('/letters')[0]
+                      ?? `https://${process.env.VITE_APP_ID ?? 'app'}.manus.space`;
+                    await sendLetterUnlockedEmail({
                       to: subscriber.email,
                       name: subscriber.name ?? "Subscriber",
                       subject: letter.subject,

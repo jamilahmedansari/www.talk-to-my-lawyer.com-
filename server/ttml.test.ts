@@ -295,3 +295,48 @@ describe("RBAC: Role-based access control", () => {
     expect(me?.role).toBe("admin");
   });
 });
+
+// ============================================================================
+// EMAIL TEMPLATE TESTS
+// ============================================================================
+describe("Email templates: structure and content", () => {
+  it("sendLetterSubmissionEmail is exported from email.ts", async () => {
+    const emailModule = await import("./email");
+    expect(typeof emailModule.sendLetterSubmissionEmail).toBe("function");
+  });
+
+  it("sendLetterReadyEmail is exported from email.ts", async () => {
+    const emailModule = await import("./email");
+    expect(typeof emailModule.sendLetterReadyEmail).toBe("function");
+  });
+
+  it("sendLetterUnlockedEmail is exported from email.ts", async () => {
+    const emailModule = await import("./email");
+    expect(typeof emailModule.sendLetterUnlockedEmail).toBe("function");
+  });
+
+  it("all three new email functions accept the correct parameter shapes without TypeError", async () => {
+    const emailModule = await import("./email");
+    const baseOpts = {
+      to: "test@example.com",
+      name: "Test User",
+      subject: "Test Letter Subject",
+      letterId: 42,
+      appUrl: "https://example.com",
+    };
+    // These will fail at the Resend API level (no real key in test env), but must NOT
+    // throw a TypeError about wrong argument shape — only a network/API error is acceptable.
+    const submissionResult = emailModule.sendLetterSubmissionEmail({
+      ...baseOpts,
+      letterType: "demand-letter",
+      jurisdictionState: "CA",
+    });
+    await expect(submissionResult).resolves.toBeUndefined();
+
+    const readyResult = emailModule.sendLetterReadyEmail(baseOpts);
+    await expect(readyResult).resolves.toBeUndefined();
+
+    const unlockedResult = emailModule.sendLetterUnlockedEmail(baseOpts);
+    await expect(unlockedResult).resolves.toBeUndefined();
+  });
+});

@@ -39,6 +39,9 @@ import {
   sendLetterRejectedEmail,
   sendNeedsChangesEmail,
   sendNewReviewNeededEmail,
+  sendLetterSubmissionEmail,
+  sendLetterReadyEmail,
+  sendLetterUnlockedEmail,
 } from "./email";
 import { runFullPipeline, retryPipelineFromStage } from "./pipeline";
 import { storagePut } from "./storage";
@@ -136,6 +139,18 @@ export const appRouter = router({
           fromStatus: undefined,
           toStatus: "submitted",
         });
+
+        // Send submission confirmation email (non-blocking)
+        const appUrl = getAppUrl(ctx.req);
+        if (ctx.user.email) sendLetterSubmissionEmail({
+          to: ctx.user.email,
+          name: ctx.user.name ?? "Subscriber",
+          subject: input.subject,
+          letterId,
+          letterType: input.letterType,
+          jurisdictionState: input.jurisdictionState,
+          appUrl,
+        }).catch((err) => console.error("[Email] Submission confirmation failed:", err));
 
         // Trigger AI pipeline in background (non-blocking)
         runFullPipeline(letterId, input.intakeJson as any).catch(async (err) => {

@@ -15,6 +15,8 @@ import {
 } from "./db";
 import { runAssemblyStage } from "./pipeline";
 import type { IntakeJson, ResearchPacket } from "../shared/types";
+import { sendLetterReadyEmail } from "./email";
+import { getUserById } from "./db";
 
 interface N8nCallbackPayload {
   letterId: number;
@@ -152,6 +154,29 @@ export function registerN8nCallbackRoute(app: Express): void {
           fromStatus: "drafting",
           toStatus: "pending_review",
         });
+      }
+
+      // Send "letter ready" email to subscriber (non-blocking)
+      try {
+        const letterRecord = await getLetterRequestById(letterId);
+        if (letterRecord) {
+          const subscriber = await getUserById(letterRecord.userId);
+          const appBaseUrl = process.env.VITE_APP_ID
+            ? `https://${process.env.VITE_APP_ID}.manus.space`
+            : "https://talk-to-my-lawyer.manus.space";
+          if (subscriber?.email) {
+            await sendLetterReadyEmail({
+              to: subscriber.email,
+              name: subscriber.name ?? "Subscriber",
+              subject: letterRecord.subject,
+              letterId,
+              appUrl: appBaseUrl,
+            });
+            console.log(`[n8n Callback] Letter-ready email sent to ${subscriber.email} for letter #${letterId}`);
+          }
+        }
+      } catch (emailErr) {
+        console.error(`[n8n Callback] Failed to send letter-ready email for #${letterId}:`, emailErr);
       }
 
       console.log(`[n8n Callback] Processing complete for letter #${letterId}`);

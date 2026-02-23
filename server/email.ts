@@ -362,3 +362,147 @@ export async function validateResendCredentials(): Promise<boolean> {
     return false;
   }
 }
+
+/** Confirm to subscriber that their letter has been received and the AI pipeline is running */
+export async function sendLetterSubmissionEmail(opts: {
+  to: string;
+  name: string;
+  subject: string;
+  letterId: number;
+  letterType: string;
+  jurisdictionState: string;
+  appUrl: string;
+}) {
+  const ctaUrl = `${opts.appUrl}/letters/${opts.letterId}`;
+  const letterTypeLabel = opts.letterType
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+  const body = `
+    <p>Hello ${opts.name},</p>
+    <p>We've received your legal letter request and our AI pipeline is already working on it. You'll receive another email as soon as your draft is ready to review.</p>
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background:#F0F9FF;border:1px solid #BAE6FD;border-radius:8px;margin:20px 0;">
+      <tr><td style="padding:20px;">
+        <p style="margin:0 0 8px;font-family:Inter,Arial,sans-serif;font-size:14px;color:#0369A1;"><strong>📋 Submission Details</strong></p>
+        <p style="margin:0 0 6px;font-family:Inter,Arial,sans-serif;font-size:14px;color:#374151;"><strong>Subject:</strong> ${opts.subject}</p>
+        <p style="margin:0 0 6px;font-family:Inter,Arial,sans-serif;font-size:14px;color:#374151;"><strong>Type:</strong> ${letterTypeLabel}</p>
+        <p style="margin:0 0 6px;font-family:Inter,Arial,sans-serif;font-size:14px;color:#374151;"><strong>Jurisdiction:</strong> ${opts.jurisdictionState}</p>
+        <p style="margin:0;font-family:Inter,Arial,sans-serif;font-size:14px;color:#374151;"><strong>Letter ID:</strong> #${opts.letterId}</p>
+      </td></tr>
+    </table>
+    <p><strong>What happens next?</strong></p>
+    <ol style="margin:8px 0;padding-left:20px;font-family:Inter,Arial,sans-serif;font-size:15px;color:#374151;line-height:1.8;">
+      <li>Our AI conducts jurisdiction-specific legal research</li>
+      <li>A professional draft letter is generated</li>
+      <li>You'll be notified to review and unlock your letter</li>
+      <li>A licensed attorney reviews and approves your final letter</li>
+    </ol>
+    <p style="font-size:13px;color:#6B7280;">This typically takes 2–5 minutes. You can track progress in your account at any time.</p>
+  `;
+  const html = buildEmailHtml({
+    preheader: `We've received your letter request #${opts.letterId} and the AI is working on it now.`,
+    title: "Your Letter Request Has Been Received ✓",
+    body,
+    ctaText: "Track Your Letter",
+    ctaUrl,
+  });
+  await sendEmail({
+    to: opts.to,
+    subject: `[${APP_NAME}] Letter request received — #${opts.letterId}`,
+    html,
+    text: buildPlainText({
+      title: "Your Letter Request Has Been Received",
+      body: `Hello ${opts.name}, we've received your letter request #${opts.letterId} ("${opts.subject}", ${letterTypeLabel}, ${opts.jurisdictionState}). Our AI pipeline is processing it now. You'll receive another email when your draft is ready. Track progress at: ${ctaUrl}`,
+      ctaText: "Track Your Letter",
+      ctaUrl,
+    }),
+  });
+}
+
+/** Notify subscriber that their AI draft is ready and they can unlock it for attorney review */
+export async function sendLetterReadyEmail(opts: {
+  to: string;
+  name: string;
+  subject: string;
+  letterId: number;
+  appUrl: string;
+}) {
+  const ctaUrl = `${opts.appUrl}/letters/${opts.letterId}`;
+  const body = `
+    <p>Hello ${opts.name},</p>
+    <p>Your AI-drafted legal letter is ready! Our system has completed the research and drafting stages for your request.</p>
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;margin:20px 0;">
+      <tr><td style="padding:20px;">
+        <p style="margin:0 0 8px;font-family:Inter,Arial,sans-serif;font-size:14px;color:#166534;"><strong>✅ Your Draft Is Ready</strong></p>
+        <p style="margin:0 0 6px;font-family:Inter,Arial,sans-serif;font-size:14px;color:#374151;"><strong>Letter:</strong> ${opts.subject}</p>
+        <p style="margin:0;font-family:Inter,Arial,sans-serif;font-size:14px;color:#374151;"><strong>Letter ID:</strong> #${opts.letterId}</p>
+      </td></tr>
+    </table>
+    <p>To send your letter for licensed attorney review and final approval, click the button below to view your draft and complete the unlock payment.</p>
+    <p style="font-size:13px;color:#6B7280;">Attorney review ensures your letter is legally sound and professionally formatted before it's sent.</p>
+  `;
+  const html = buildEmailHtml({
+    preheader: `Your AI-drafted letter is ready — unlock it for attorney review.`,
+    title: "Your Letter Draft Is Ready 🎉",
+    body,
+    ctaText: "View & Unlock Your Letter — $29",
+    ctaUrl,
+  });
+  await sendEmail({
+    to: opts.to,
+    subject: `[${APP_NAME}] Your letter draft is ready — unlock for attorney review`,
+    html,
+    text: buildPlainText({
+      title: "Your Letter Draft Is Ready",
+      body: `Hello ${opts.name}, your AI-drafted letter "${opts.subject}" (Letter #${opts.letterId}) is ready. Unlock it for attorney review at: ${ctaUrl}`,
+      ctaText: "View & Unlock Your Letter",
+      ctaUrl,
+    }),
+  });
+}
+
+/** Confirm to subscriber that their payment was received and letter is now in attorney review */
+export async function sendLetterUnlockedEmail(opts: {
+  to: string;
+  name: string;
+  subject: string;
+  letterId: number;
+  appUrl: string;
+}) {
+  const ctaUrl = `${opts.appUrl}/letters/${opts.letterId}`;
+  const body = `
+    <p>Hello ${opts.name},</p>
+    <p>Payment confirmed! Your letter has been sent to our attorney team for review and approval.</p>
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background:#F5F3FF;border:1px solid #DDD6FE;border-radius:8px;margin:20px 0;">
+      <tr><td style="padding:20px;">
+        <p style="margin:0 0 8px;font-family:Inter,Arial,sans-serif;font-size:14px;color:#5B21B6;"><strong>⚖️ In Attorney Review</strong></p>
+        <p style="margin:0 0 6px;font-family:Inter,Arial,sans-serif;font-size:14px;color:#374151;"><strong>Letter:</strong> ${opts.subject}</p>
+        <p style="margin:0;font-family:Inter,Arial,sans-serif;font-size:14px;color:#374151;"><strong>Letter ID:</strong> #${opts.letterId}</p>
+      </td></tr>
+    </table>
+    <p><strong>What happens next?</strong></p>
+    <ol style="margin:8px 0;padding-left:20px;font-family:Inter,Arial,sans-serif;font-size:15px;color:#374151;line-height:1.8;">
+      <li>A licensed attorney reviews your letter for legal accuracy</li>
+      <li>They may request minor changes or approve it as-is</li>
+      <li>You'll receive an email when your letter is approved and ready</li>
+    </ol>
+    <p style="font-size:13px;color:#6B7280;">Attorney review typically takes 1–2 business days. You can check the status of your letter at any time in your account.</p>
+  `;
+  const html = buildEmailHtml({
+    preheader: `Payment confirmed — your letter is now with our attorney team.`,
+    title: "Payment Confirmed — Letter In Review ✓",
+    body,
+    ctaText: "Track Review Status",
+    ctaUrl,
+  });
+  await sendEmail({
+    to: opts.to,
+    subject: `[${APP_NAME}] Payment confirmed — your letter is in attorney review`,
+    html,
+    text: buildPlainText({
+      title: "Payment Confirmed — Letter In Review",
+      body: `Hello ${opts.name}, your payment has been confirmed and your letter "${opts.subject}" (Letter #${opts.letterId}) is now in attorney review. You'll receive an email when it's approved. Track status at: ${ctaUrl}`,
+      ctaText: "Track Review Status",
+      ctaUrl,
+    }),
+  });
+}
