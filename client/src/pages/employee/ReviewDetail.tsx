@@ -36,7 +36,18 @@ export default function ReviewDetail() {
   const letterId = parseInt(params.id ?? "0");
   const utils = trpc.useUtils();
 
-  const { data, isLoading, error } = trpc.review.letterDetail.useQuery({ id: letterId }, { enabled: !!letterId });
+  const { data, isLoading, error } = trpc.review.letterDetail.useQuery(
+    { id: letterId },
+    {
+      enabled: !!letterId,
+      // Poll every 8s while letter is in active review statuses
+      refetchInterval: (query) => {
+        const status = query.state.data?.letter?.status;
+        if (status && ["pending_review", "under_review", "researching", "drafting"].includes(status)) return 8000;
+        return false;
+      },
+    }
+  );
 
   const [editContent, setEditContent] = useState("");
   const [editMode, setEditMode] = useState(false);

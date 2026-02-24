@@ -9,8 +9,18 @@ import { Link } from "wouter";
 import { useState } from "react";
 import { LETTER_TYPE_CONFIG } from "../../../../shared/types";
 
+// Statuses where the list should auto-refresh (pipeline in progress)
+const ACTIVE_STATUSES = ["submitted", "researching", "drafting"];
+
 export default function MyLetters() {
-  const { data: letters, isLoading } = trpc.letters.myLetters.useQuery();
+  const { data: letters, isLoading } = trpc.letters.myLetters.useQuery(undefined, {
+    // Poll every 8s if any letter is in an active pipeline status
+    refetchInterval: (query) => {
+      const list = query.state.data;
+      if (list?.some((l: any) => ACTIVE_STATUSES.includes(l.status))) return 8000;
+      return false;
+    },
+  });
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 

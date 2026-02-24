@@ -89,7 +89,7 @@
 - [ ] Strengthen validateResearchPacket: require sourceUrl+sourceTitle per rule, prefer >= 3 rules
 - [ ] Add subscriber updateForChanges mutation (re-submit after needs_changes)
 - [ ] Add admin forceStatusTransition mutation (audited)
-- [ ] Add frontend polling/revalidation for researching/drafting/pending_review statuses
+- [x] Add frontend polling/revalidation for researching/drafting/pending_review statuses
 - [ ] Add status timeline component in subscriber LetterDetail
 - [ ] Add subscriber update form when status is needs_changes
 - [ ] Verify success path E2E (submit → research → draft → assembly → pending_review → claim → approve → subscriber sees final)
@@ -238,3 +238,10 @@
 - [ ] Update Pricing page to reflect freemium model (first letter free)
 - [ ] Update email: sendLetterReadyEmail copy for free vs paid path
 - [ ] Run tests, update SPEC_COMPLIANCE.md, save checkpoint
+
+## Phase 23: Critical Feature Additions
+- [x] Add subscriber updateForChanges mutation (re-submit after needs_changes status)
+- [x] Fix research provider default (ensure Perplexity is default, not broken fallback)
+- [x] Add admin forceStatusTransition mutation with full audit logging
+- [x] Add frontend polling/revalidation for researching/drafting/pending_review statuses
+- [x] Verify all frontend pages work with real data and fix any issues found

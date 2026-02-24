@@ -16,6 +16,7 @@ const ALL_STATUSES = [
   "submitted",
   "researching",
   "drafting",
+  "generated_locked",
   "pending_review",
   "under_review",
   "approved",

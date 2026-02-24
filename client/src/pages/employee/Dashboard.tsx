@@ -8,8 +8,12 @@ import { Link } from "wouter";
 import { LETTER_TYPE_CONFIG } from "../../../../shared/types";
 
 export default function EmployeeDashboard() {
-  const { data: pendingLetters } = trpc.review.queue.useQuery({ status: "pending_review" });
-  const { data: myLetters } = trpc.review.queue.useQuery({ myAssigned: true });
+  const { data: pendingLetters } = trpc.review.queue.useQuery({ status: "pending_review" }, {
+    refetchInterval: 15000, // Poll every 15s for new pending letters
+  });
+  const { data: myLetters } = trpc.review.queue.useQuery({ myAssigned: true }, {
+    refetchInterval: 15000,
+  });
   const { data: allLetters } = trpc.review.queue.useQuery({});
 
   const stats = {

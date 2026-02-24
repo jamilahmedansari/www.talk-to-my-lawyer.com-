@@ -9,7 +9,10 @@ import { useState } from "react";
 import { LETTER_TYPE_CONFIG } from "../../../../shared/types";
 
 export default function ReviewQueue() {
-  const { data: letters, isLoading } = trpc.review.queue.useQuery({});
+  const { data: letters, isLoading } = trpc.review.queue.useQuery({}, {
+    // Auto-refresh every 10s so new pending_review letters appear in real-time
+    refetchInterval: 10000,
+  });
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("active");
 

@@ -210,6 +210,7 @@ export const appRouter = router({
           throw new TRPCError({ code: "NOT_FOUND" });
         if (letter.status !== "needs_changes")
           throw new TRPCError({ code: "BAD_REQUEST", message: "Letter must be in needs_changes status" });
+
         // Log the subscriber's response
         await logReviewAction({
           letterRequestId: input.letterId,
@@ -219,8 +220,9 @@ export const appRouter = router({
           noteText: input.additionalContext,
           noteVisibility: "user_visible",
           fromStatus: "needs_changes",
-          toStatus: "needs_changes",
+          toStatus: "submitted",
         });
+
         // If updated intake provided, update the letter request
         if (input.updatedIntakeJson) {
           const db = await (await import("./db")).getDb();
@@ -233,11 +235,35 @@ export const appRouter = router({
             } as any).where(eq(letterRequests.id, input.letterId));
           }
         }
-        // Re-trigger pipeline from drafting stage
-        if (letter.intakeJson) {
-          const intake = input.updatedIntakeJson ?? letter.intakeJson;
-          retryPipelineFromStage(input.letterId, intake as any, "drafting").catch(console.error);
+
+        // Transition status back to submitted before re-triggering pipeline
+        // This allows the pipeline to properly set researching → drafting → generated_locked
+        await updateLetterStatus(input.letterId, "submitted");
+
+        // Re-trigger full pipeline (not just from drafting — subscriber changes may affect research)
+        const intake = input.updatedIntakeJson ?? letter.intakeJson;
+        if (intake) {
+          const appUrl = getAppUrl(ctx.req);
+          runFullPipeline(input.letterId, intake as any).catch(async (err) => {
+            console.error("[Pipeline] Retry after subscriber update failed:", err);
+            try {
+              const admins = await getAllUsers("admin");
+              for (const admin of admins) {
+                if (admin.email) {
+                  await sendJobFailedAlertEmail({
+                    to: admin.email,
+                    name: admin.name ?? "Admin",
+                    letterId: input.letterId,
+                    jobType: "generation_pipeline",
+                    errorMessage: err instanceof Error ? err.message : String(err),
+                    appUrl,
+                  });
+                }
+              }
+            } catch (notifyErr) { console.error("[Pipeline] Failed to notify admins:", notifyErr); }
+          });
         }
+
         return { success: true };
       }),
 
@@ -483,7 +509,7 @@ export const appRouter = router({
     forceStatusTransition: adminProcedure
       .input(z.object({
         letterId: z.number(),
-        newStatus: z.enum(["submitted", "researching", "drafting", "pending_review", "under_review", "needs_changes", "approved", "rejected"]),
+        newStatus: z.enum(["submitted", "researching", "drafting", "generated_locked", "pending_review", "under_review", "needs_changes", "approved", "rejected"]),
         reason: z.string().min(5),
       }))
       .mutation(async ({ ctx, input }) => {

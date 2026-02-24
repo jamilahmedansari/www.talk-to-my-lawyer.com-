@@ -33,12 +33,18 @@ import { getUserById, getLetterRequestById as getLetterById } from "./db";
 // ═══════════════════════════════════════════════════════
 
 /** Stage 1: Perplexity for web-grounded legal research */
-const perplexity = createOpenAI({
-  apiKey: process.env.PERPLEXITY_API_KEY ?? "",
-  baseURL: "https://api.perplexity.ai",
-  name: "perplexity",
-});
-const RESEARCH_MODEL = perplexity.chat("sonar-pro");
+function getPerplexityProvider() {
+  const apiKey = process.env.PERPLEXITY_API_KEY;
+  if (!apiKey || apiKey.trim().length === 0) {
+    console.warn("[Pipeline] PERPLEXITY_API_KEY is not set — research stage will use OpenAI fallback");
+    return null;
+  }
+  return createOpenAI({
+    apiKey,
+    baseURL: "https://api.perplexity.ai",
+    name: "perplexity",
+  });
+}
 
 /** Stage 2: OpenAI for initial draft generation (via Forge proxy) */
 const openai = createOpenAI({
@@ -47,6 +53,16 @@ const openai = createOpenAI({
   fetch: createPatchedFetch(fetch),
 });
 const DRAFT_MODEL = openai.chat("gpt-4o");
+
+function getResearchModel() {
+  const perplexity = getPerplexityProvider();
+  if (perplexity) {
+    return { model: perplexity.chat("sonar-pro"), provider: "perplexity" };
+  }
+  // Fallback to OpenAI via Forge proxy for research
+  console.log("[Pipeline] Using OpenAI fallback for research stage");
+  return { model: DRAFT_MODEL, provider: "openai-fallback" };
+}
 
 /** Stage 3: Claude for final professional letter assembly (via Forge proxy) */
 const ASSEMBLY_MODEL = openai.chat("claude-sonnet-4-20250514");
@@ -147,18 +163,18 @@ export function validateFinalLetter(text: string): { valid: boolean; errors: str
 // ═══════════════════════════════════════════════════════
 
 export async function runResearchStage(letterId: number, intake: IntakeJson): Promise<ResearchPacket> {
+  const researchConfig = getResearchModel();
   const job = await createWorkflowJob({
     letterRequestId: letterId,
     jobType: "research",
-    provider: "perplexity",
+    provider: researchConfig.provider,
     requestPayloadJson: { letterId, letterType: intake.letterType, jurisdiction: intake.jurisdiction },
   });
   const jobId = (job as any)?.insertId ?? 0;
-
   const researchRun = await createResearchRun({
     letterRequestId: letterId,
     workflowJobId: jobId,
-    provider: "perplexity",
+    provider: researchConfig.provider,
   });
   const runId = (researchRun as any)?.insertId ?? 0;
 
@@ -169,8 +185,8 @@ export async function runResearchStage(letterId: number, intake: IntakeJson): Pr
   const prompt = buildResearchPrompt(intake);
 
   try {
-    console.log(`[Pipeline] Stage 1: Perplexity research for letter #${letterId}`);
-    const { text } = await generateText({ model: RESEARCH_MODEL, prompt, maxOutputTokens: 4000 });
+    console.log(`[Pipeline] Stage 1: ${researchConfig.provider} research for letter #${letterId}`);
+    const { text } = await generateText({ model: researchConfig.model, prompt, maxOutputTokens: 4000 });
 
     // Parse research packet from response
     let researchPacket: ResearchPacket;

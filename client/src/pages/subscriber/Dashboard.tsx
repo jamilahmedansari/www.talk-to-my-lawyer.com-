@@ -7,8 +7,17 @@ import { FileText, PlusCircle, Clock, CheckCircle, AlertCircle, ArrowRight } fro
 import { Link } from "wouter";
 import { LETTER_TYPE_CONFIG } from "../../../../shared/types";
 
+// Statuses where the dashboard should auto-refresh
+const ACTIVE_STATUSES = ["submitted", "researching", "drafting"];
+
 export default function SubscriberDashboard() {
-  const { data: letters, isLoading } = trpc.letters.myLetters.useQuery();
+  const { data: letters, isLoading } = trpc.letters.myLetters.useQuery(undefined, {
+    refetchInterval: (query) => {
+      const list = query.state.data;
+      if (list?.some((l: any) => ACTIVE_STATUSES.includes(l.status))) return 8000;
+      return false;
+    },
+  });
 
   const stats = {
     total: letters?.length ?? 0,
@@ -118,6 +127,7 @@ export default function SubscriberDashboard() {
                 { status: "submitted", desc: "Your request has been received and queued for processing." },
                 { status: "researching", desc: "AI is researching applicable laws and statutes." },
                 { status: "drafting", desc: "AI is drafting your professional letter." },
+                { status: "generated_locked", desc: "Your letter is ready! Pay $29 to unlock attorney review." },
                 { status: "pending_review", desc: "Letter is queued for attorney review." },
                 { status: "under_review", desc: "An attorney is actively reviewing your letter." },
                 { status: "approved", desc: "Your letter has been approved and is ready to download." },
