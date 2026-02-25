@@ -320,3 +320,19 @@
 - [x] Verify email templates: 9 functions present and correct (submission, ready, unlocked, approved, rejected, needs_changes, new_review, job_failed, status_update)
 - [x] Verify Stripe webhook: letter unlock flow, subscription events, invoice.paid renewal
 - [x] Write architecture audit tests (153 total, all passing, 0 TypeScript errors)
+
+## Phase 33: Database Migration — TiDB (MySQL) → Supabase (PostgreSQL)
+
+- [ ] Save safety checkpoint of current TiDB working state
+- [ ] Convert drizzle/schema.ts from MySQL to PostgreSQL dialect (pgTable, pgEnum, serial, text, integer, boolean, timestamp, jsonb, index)
+- [ ] Update drizzle.config.ts dialect from mysql to postgresql
+- [ ] Install pg/postgres Drizzle driver (drizzle-orm/node-postgres or postgres.js)
+- [ ] Remove mysql2 driver dependency
+- [ ] Delete old MySQL migration files and regenerate PostgreSQL migrations
+- [ ] Apply migrations to Supabase project hesxnmtbqlsstotggxsn via MCP execute_sql
+- [ ] Verify all 9 application tables exist in Supabase public schema
+- [ ] Update DATABASE_URL secret to Supabase PostgreSQL connection string
+- [ ] Update server/db.ts connection code from mysql2 to postgres.js/pg
+- [ ] Fix any PostgreSQL-specific syntax (ON UPDATE CURRENT_TIMESTAMP → triggers, AUTO_INCREMENT → serial/identity)
+- [ ] Run all tests and verify 0 TypeScript errors
+- [ ] Save checkpoint and deliver
