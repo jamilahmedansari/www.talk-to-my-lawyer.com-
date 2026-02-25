@@ -130,9 +130,11 @@ export default function AppLayout({ children, title, breadcrumb }: AppLayoutProp
       {/* Logo */}
       <div className="p-6 border-b border-sidebar-border">
         <Link href="/" className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-sidebar-primary rounded-xl flex items-center justify-center flex-shrink-0">
-            <span className="text-white font-bold text-sm">⚖</span>
-          </div>
+          <img
+            src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663031738932/OabHhALgbskSzGQq.png"
+            alt="Talk to My Lawyer"
+            className="w-10 h-10 object-contain flex-shrink-0"
+          />
           <div>
             <p className="text-sidebar-foreground font-bold text-sm leading-tight">Talk to My</p>
             <p className="text-sidebar-primary font-bold text-sm leading-tight">Lawyer</p>

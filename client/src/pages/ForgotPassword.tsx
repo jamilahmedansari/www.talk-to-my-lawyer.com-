@@ -43,9 +43,11 @@ export default function ForgotPassword() {
         {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 mb-4">
-            <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center">
-              <Scale className="w-6 h-6 text-white" />
-            </div>
+            <img
+              src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663031738932/OabHhALgbskSzGQq.png"
+              alt="Talk to My Lawyer"
+              className="w-12 h-12 object-contain"
+            />
             <span className="text-2xl font-bold text-slate-900">Talk to My Lawyer</span>
           </Link>
         </div>

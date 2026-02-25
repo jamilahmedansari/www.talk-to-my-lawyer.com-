@@ -534,3 +534,11 @@
 ### E. In-App Payment History
 - [x] Add billing.paymentHistory tRPC query (Stripe API)
 - [x] Add Payment History section to Billing.tsx with receipt links
+
+## Phase 42: Logo Replacement
+- [ ] Upload logo.png to S3 CDN
+- [ ] Replace logo in navbar (Home.tsx / AppLayout.tsx)
+- [ ] Replace logo in login/signup pages
+- [ ] Replace logo in sidebar (AppLayout.tsx)
+- [ ] Replace favicon in index.html
+- [ ] Replace any other logo occurrences (meta tags, og:image)
