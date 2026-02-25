@@ -186,9 +186,9 @@ export default function ReviewModal({ letterId, open, onOpenChange }: ReviewModa
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-[95vw] w-[1200px] max-h-[92vh] p-0 gap-0 overflow-hidden">
+      <DialogContent className="max-w-[95vw] w-[1200px] max-h-[92vh] sm:max-h-[92vh] h-[100dvh] sm:h-auto p-0 gap-0 overflow-hidden rounded-none sm:rounded-lg">
         {/* ─── Modal Header ─── */}
-        <div className="flex items-start justify-between px-6 py-4 border-b border-border bg-card">
+        <div className="flex flex-col sm:flex-row items-start justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-border bg-card gap-2 sm:gap-0">
           <div className="flex-1 min-w-0">
             {isLoading ? (
               <div className="space-y-2">
@@ -216,7 +216,7 @@ export default function ReviewModal({ letterId, open, onOpenChange }: ReviewModa
           </div>
 
           {/* ─── Action Buttons (top-right) ─── */}
-          <div className="flex items-center gap-2 ml-4 flex-shrink-0">
+          <div className="flex items-center gap-2 ml-4 flex-shrink-0 overflow-x-auto">
             {isPending && (
               <Button
                 onClick={() => claimMutation.mutate({ letterId })}
@@ -224,16 +224,17 @@ export default function ReviewModal({ letterId, open, onOpenChange }: ReviewModa
                 size="sm"
                 className="bg-blue-600 hover:bg-blue-700 text-white"
               >
-                <ClipboardList className="w-4 h-4 mr-1.5" />
-                {claimMutation.isPending ? "Claiming..." : "Claim for Review"}
+                <ClipboardList className="w-4 h-4 sm:mr-1.5" />
+                <span className="hidden sm:inline">{claimMutation.isPending ? "Claiming..." : "Claim for Review"}</span>
+                <span className="sm:hidden">{claimMutation.isPending ? "..." : "Claim"}</span>
               </Button>
             )}
             {isUnderReview && (
               <>
                 {!isEditing ? (
                   <Button variant="outline" size="sm" onClick={handleStartEdit} className="bg-background">
-                    <Edit3 className="w-4 h-4 mr-1.5" />
-                    Edit Draft
+                    <Edit3 className="w-4 h-4 sm:mr-1.5" />
+                    <span className="hidden sm:inline">Edit Draft</span>
                   </Button>
                 ) : (
                   <Button
@@ -243,8 +244,8 @@ export default function ReviewModal({ letterId, open, onOpenChange }: ReviewModa
                     disabled={saveMutation.isPending || !hasUnsavedChanges}
                     className="bg-background"
                   >
-                    <Save className="w-4 h-4 mr-1.5" />
-                    {saveMutation.isPending ? "Saving..." : "Save"}
+                    <Save className="w-4 h-4 sm:mr-1.5" />
+                    <span className="hidden sm:inline">{saveMutation.isPending ? "Saving..." : "Save"}</span>
                   </Button>
                 )}
                 <Button
@@ -253,8 +254,8 @@ export default function ReviewModal({ letterId, open, onOpenChange }: ReviewModa
                   onClick={() => setActiveAction("changes")}
                   className="border-amber-300 text-amber-700 hover:bg-amber-50"
                 >
-                  <MessageSquare className="w-4 h-4 mr-1.5" />
-                  Changes
+                  <MessageSquare className="w-4 h-4 sm:mr-1.5" />
+                  <span className="hidden sm:inline">Changes</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -262,8 +263,8 @@ export default function ReviewModal({ letterId, open, onOpenChange }: ReviewModa
                   onClick={() => setActiveAction("reject")}
                   className="border-red-300 text-red-700 hover:bg-red-50"
                 >
-                  <XCircle className="w-4 h-4 mr-1.5" />
-                  Reject
+                  <XCircle className="w-4 h-4 sm:mr-1.5" />
+                  <span className="hidden sm:inline">Reject</span>
                 </Button>
                 {/* ─── PROMINENT APPROVE BUTTON ─── */}
                 <Button
@@ -271,8 +272,8 @@ export default function ReviewModal({ letterId, open, onOpenChange }: ReviewModa
                   onClick={handleApprove}
                   className="bg-green-600 hover:bg-green-700 text-white px-5 shadow-md shadow-green-200 font-semibold"
                 >
-                  <CheckCircle className="w-4 h-4 mr-1.5" />
-                  Approve
+                  <CheckCircle className="w-4 h-4 sm:mr-1.5" />
+                  <span className="hidden sm:inline">Approve</span>
                 </Button>
               </>
             )}
@@ -340,8 +341,8 @@ export default function ReviewModal({ letterId, open, onOpenChange }: ReviewModa
             </div>
           </div>
 
-          {/* Right: Side Panel (Tabs) */}
-          <div className="w-full lg:w-[380px] flex flex-col overflow-hidden bg-card">
+          {/* Right: Side Panel (Tabs) — collapsible accordion on mobile */}
+          <div className="w-full lg:w-[380px] flex flex-col overflow-hidden bg-card border-t lg:border-t-0 max-h-[40vh] lg:max-h-none">
             <Tabs defaultValue="intake" className="flex flex-col flex-1 overflow-hidden">
               <TabsList className="w-full rounded-none border-b border-border bg-muted/30 h-auto p-0">
                 <TabsTrigger value="intake" className="flex-1 rounded-none py-2.5 text-xs data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary">

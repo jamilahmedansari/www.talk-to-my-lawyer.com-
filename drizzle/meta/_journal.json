@@ -43,6 +43,13 @@
       "when": 1772048671583,
       "tag": "0005_low_pride",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1772052964120,
+      "tag": "0006_regular_pestilence",
+      "breakpoints": true
     }
   ]
 }

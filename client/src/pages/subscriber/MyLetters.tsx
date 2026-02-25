@@ -4,7 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, PlusCircle, Search, ArrowRight, Lock } from "lucide-react";
+import { FileText, PlusCircle, Search, ArrowRight, Lock, CheckCircle } from "lucide-react";
 import { Link } from "wouter";
 import { useState } from "react";
 import { LETTER_TYPE_CONFIG } from "../../../../shared/types";
@@ -44,7 +44,7 @@ export default function MyLetters() {
         </div>
 
         {/* Filters */}
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
@@ -55,7 +55,7 @@ export default function MyLetters() {
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-44">
+            <SelectTrigger className="w-full sm:w-44">
               <SelectValue placeholder="All statuses" />
             </SelectTrigger>
             <SelectContent>
@@ -67,6 +67,7 @@ export default function MyLetters() {
               <SelectItem value="under_review">Under Review</SelectItem>
               <SelectItem value="needs_changes">Needs Changes</SelectItem>
               <SelectItem value="generated_locked">Ready to Unlock</SelectItem>
+              <SelectItem value="generated_unlocked">Draft Ready (Free)</SelectItem>
               <SelectItem value="approved">Approved</SelectItem>
               <SelectItem value="rejected">Rejected</SelectItem>
             </SelectContent>
@@ -104,6 +105,8 @@ export default function MyLetters() {
                     <div className={`bg-card border rounded-xl p-4 hover:shadow-sm transition-all cursor-pointer ${
                       letter.status === "generated_locked"
                         ? "border-amber-300 hover:border-amber-400 bg-amber-50/30"
+                        : letter.status === "generated_unlocked"
+                        ? "border-green-300 hover:border-green-400 bg-green-50/30"
                         : "border-border hover:border-primary/40"
                     }`}>
                   <div className="flex items-start gap-4">
@@ -112,7 +115,7 @@ export default function MyLetters() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm font-semibold text-foreground leading-tight">{letter.subject}</p>
+                        <p className="text-sm font-semibold text-foreground leading-tight truncate max-w-[200px] sm:max-w-none">{letter.subject}</p>
                         <ArrowRight className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">
@@ -124,7 +127,13 @@ export default function MyLetters() {
                         {letter.status === "generated_locked" && (
                           <span className="text-xs text-amber-600 font-semibold flex items-center gap-1">
                             <Lock className="w-3 h-3" />
-                            Unlock for $29
+                            Unlock for Review
+                          </span>
+                        )}
+                        {letter.status === "generated_unlocked" && (
+                          <span className="text-xs text-green-600 font-semibold flex items-center gap-1">
+                            <CheckCircle className="w-3 h-3" />
+                            Free — Send for Review
                           </span>
                         )}
                         <span className="text-xs text-muted-foreground">

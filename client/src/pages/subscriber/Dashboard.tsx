@@ -14,6 +14,7 @@ import {
   Search,
   Pen,
   Lock,
+  Unlock,
   Eye,
   ShieldCheck,
   XCircle,
@@ -37,6 +38,7 @@ const PIPELINE_STAGES = [
   { key: "researching", label: "Research", icon: Search },
   { key: "drafting", label: "Drafting", icon: Pen },
   { key: "generated_locked", label: "Unlock", icon: Lock },
+  { key: "generated_unlocked", label: "Draft Ready", icon: Unlock },
   { key: "pending_review", label: "Review", icon: Eye },
   { key: "under_review", label: "Attorney", icon: ShieldCheck },
   { key: "approved", label: "Approved", icon: CheckCircle },
@@ -45,8 +47,8 @@ const PIPELINE_STAGES = [
 // Map status to pipeline stage index
 function getStageIndex(status: string): number {
   const idx = PIPELINE_STAGES.findIndex((s) => s.key === status);
-  if (status === "needs_changes") return 5; // same level as under_review
-  if (status === "rejected") return 6; // terminal
+  if (status === "needs_changes") return 6; // same level as under_review
+  if (status === "rejected") return 7; // terminal
   return idx >= 0 ? idx : 0;
 }
 
@@ -58,7 +60,9 @@ function getStatusCTA(status: string, letterId: number) {
     case "drafting":
       return { label: "Processing...", icon: Loader2, variant: "outline" as const, href: `/letters/${letterId}`, animate: true };
     case "generated_locked":
-      return { label: "Pay to Unlock — $200", icon: CreditCard, variant: "default" as const, href: `/letters/${letterId}`, animate: false };
+      return { label: "Pay to Unlock \u2014 $200", icon: CreditCard, variant: "default" as const, href: `/letters/${letterId}`, animate: false };
+    case "generated_unlocked":
+      return { label: "Read & Send for Review", icon: Eye, variant: "default" as const, href: `/letters/${letterId}`, animate: false };
     case "pending_review":
       return { label: "Awaiting Attorney", icon: Clock, variant: "outline" as const, href: `/letters/${letterId}`, animate: true };
     case "under_review":
@@ -102,7 +106,12 @@ function PipelineStepper({ status }: { status: string }) {
         const isCurrent = idx === currentIdx;
         const isActive = isCurrent && ["researching", "drafting", "pending_review", "under_review"].includes(status);
         const isPaywall = isCurrent && status === "generated_locked";
+        const isUnlocked = isCurrent && status === "generated_unlocked";
         const isApproved = isCurrent && status === "approved";
+
+        // Skip the other path's step (show only the relevant one)
+        if (stage.key === "generated_locked" && status === "generated_unlocked") return null;
+        if (stage.key === "generated_unlocked" && status === "generated_locked") return null;
         const Icon = stage.icon;
 
         return (
@@ -121,6 +130,8 @@ function PipelineStepper({ status }: { status: string }) {
                     ? "bg-amber-500 text-white ring-2 ring-amber-200"
                     : isPaywall
                     ? "bg-amber-500 text-white ring-2 ring-amber-200 animate-pulse"
+                    : isUnlocked
+                    ? "bg-green-500 text-white ring-2 ring-green-200"
                     : isActive
                     ? "bg-blue-500 text-white ring-2 ring-blue-200"
                     : isCurrent
@@ -197,7 +208,7 @@ export default function SubscriberDashboard() {
     active: letters?.filter((l) => !["approved", "rejected"].includes(l.status)).length ?? 0,
     approved: letters?.filter((l) => l.status === "approved").length ?? 0,
     needsAttention: letters?.filter((l) =>
-      ["needs_changes", "generated_locked"].includes(l.status)
+      ["needs_changes", "generated_locked", "generated_unlocked"].includes(l.status)
     ).length ?? 0,
   };
 
@@ -307,7 +318,7 @@ export default function SubscriberDashboard() {
               {recentLetters.map((letter) => {
                 const cta = getStatusCTA(letter.status, letter.id);
                 const CTAIcon = cta.icon;
-                const isActionRequired = ["generated_locked", "needs_changes"].includes(
+                const isActionRequired = ["generated_locked", "generated_unlocked", "needs_changes"].includes(
                   letter.status
                 );
 
@@ -362,6 +373,8 @@ export default function SubscriberDashboard() {
                           className={`w-full sm:w-auto ${
                             letter.status === "generated_locked"
                               ? "bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white border-0"
+                              : letter.status === "generated_unlocked"
+                              ? "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white border-0"
                               : ""
                           }`}
                         >
@@ -403,7 +416,11 @@ export default function SubscriberDashboard() {
                 },
                 {
                   status: "generated_locked",
-                  desc: "Your letter is ready! Pay $200 to submit it for licensed attorney review.",
+                  desc: "Your letter is ready! Pay to unlock and send for attorney review.",
+                },
+                {
+                  status: "generated_unlocked",
+                  desc: "Your first free letter draft is ready to read! Send it for attorney review.",
                 },
                 {
                   status: "pending_review",

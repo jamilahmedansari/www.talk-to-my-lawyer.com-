@@ -390,11 +390,21 @@ export async function runAssemblyStage(
     await updateLetterVersionPointers(letterId, { currentAiDraftVersionId: versionId });
     await updateWorkflowJob(jobId, { status: "completed", completedAt: new Date(), responsePayloadJson: { versionId } });
 
-    // Determine final status: subscribers with monthly/annual plan bypass the paywall
+    // Determine final status based on subscription and first-letter eligibility
     const letterRecord = await getLetterById(letterId);
     const userId = letterRecord?.userId ?? 0;
     const isSubscriber = userId > 0 ? await hasActiveRecurringSubscription(userId) : false;
-    const finalStatus = isSubscriber ? "pending_review" : "generated_locked";
+
+    let finalStatus: string;
+    if (isSubscriber) {
+      // Monthly/annual subscribers bypass the paywall entirely
+      finalStatus = "pending_review";
+    } else {
+      // Check if this is the user's first completed letter (first-letter-free)
+      const { countCompletedLetters } = await import("./db");
+      const completedCount = await countCompletedLetters(userId, letterId);
+      finalStatus = completedCount === 0 ? "generated_unlocked" : "generated_locked";
+    }
 
     await updateLetterStatus(letterId, finalStatus);
     await logReviewAction({
@@ -403,6 +413,8 @@ export async function runAssemblyStage(
       action: "ai_pipeline_completed",
       noteText: isSubscriber
         ? `3-stage pipeline complete. Research (Perplexity) → Draft (Anthropic) → Final Assembly (Anthropic). Letter automatically queued for attorney review (active subscription).`
+        : finalStatus === "generated_unlocked"
+        ? `3-stage pipeline complete. Your first AI draft is ready to read! Send it for attorney review when you're ready.`
         : `3-stage pipeline complete. Research (Perplexity) → Draft (Anthropic) → Final Assembly (Anthropic). Your letter is ready — unlock it to send for attorney review.`,
       noteVisibility: "user_visible",
       fromStatus: "drafting",

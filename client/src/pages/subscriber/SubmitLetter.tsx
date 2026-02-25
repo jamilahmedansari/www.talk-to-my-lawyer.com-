@@ -22,7 +22,8 @@ const STEPS = [
   { id: 3, label: "Parties", icon: <Users className="w-4 h-4" /> },
   { id: 4, label: "Details", icon: <AlignLeft className="w-4 h-4" /> },
   { id: 5, label: "Outcome", icon: <Target className="w-4 h-4" /> },
-  { id: 6, label: "Evidence", icon: <Paperclip className="w-4 h-4" /> },
+  { id: 6, label: "Communications", icon: <Users className="w-4 h-4" /> },
+  { id: 7, label: "Evidence", icon: <Paperclip className="w-4 h-4" /> },
 ];
 
 const MAX_FILE_MB = 10;
@@ -67,6 +68,9 @@ interface FormData {
   language: string;
   priorCommunication: string;
   deliveryMethod: string;
+  communicationsSummary: string;
+  communicationsLastContactDate: string;
+  communicationsMethod: string;
 }
 
 const INITIAL: FormData = {
@@ -91,6 +95,9 @@ const INITIAL: FormData = {
   language: "english",
   priorCommunication: "",
   deliveryMethod: "certified_mail",
+  communicationsSummary: "",
+  communicationsLastContactDate: "",
+  communicationsMethod: "",
 };
 
 const DRAFT_KEY = "ttml_draft_letter";
@@ -163,7 +170,8 @@ export default function SubmitLetter() {
     if (step === 3) return !!form.senderName && !!form.senderAddress && !!form.recipientName && !!form.recipientAddress;
     if (step === 4) return form.description.length >= 20;
     if (step === 5) return form.desiredOutcome.length >= 10;
-    if (step === 6) return true; // attachments are optional
+    if (step === 6) return true; // communications are optional
+    if (step === 7) return true; // attachments are optional
     return true;
   };
 
@@ -234,6 +242,15 @@ export default function SubmitLetter() {
         language: form.language,
         priorCommunication: form.priorCommunication || undefined,
         deliveryMethod: form.deliveryMethod,
+        communications: form.communicationsSummary ? {
+          summary: form.communicationsSummary,
+          lastContactDate: form.communicationsLastContactDate || undefined,
+          method: (form.communicationsMethod || undefined) as "email" | "phone" | "letter" | "in-person" | "other" | undefined,
+        } : undefined,
+        toneAndDelivery: {
+          tone: form.tonePreference,
+          deliveryMethod: (form.deliveryMethod === "certified_mail" ? "certified-mail" : form.deliveryMethod === "hand_delivery" ? "hand-delivery" : form.deliveryMethod === "email" ? "email" : undefined) as "email" | "certified-mail" | "hand-delivery" | undefined,
+        },
       };
       const result = await submit.mutateAsync({
         letterType: form.letterType as any,
@@ -582,12 +599,64 @@ export default function SubmitLetter() {
                     <span className="text-foreground font-medium">{form.recipientName}</span>
                     <span className="text-muted-foreground">Tone:</span>
                     <span className="text-foreground font-medium capitalize">{form.tonePreference}</span>
+                    <span className="text-muted-foreground">Language:</span>
+                    <span className="text-foreground font-medium capitalize">{form.language}</span>
+                    <span className="text-muted-foreground">Delivery:</span>
+                    <span className="text-foreground font-medium capitalize">{form.deliveryMethod.replace(/_/g, " ")}</span>
                   </div>
                 </div>
               </>
             )}
-            {/* ── Step 6: Evidence / Attachments ───────────────────────────── */}
+            {/* ── Step 6: Prior Communications (Optional) ─────────────────── */}
             {step === 6 && (
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Describe any emails, letters, or conversations you've already had with the other party.
+                  This helps the attorney understand the full context. <span className="font-medium">Optional.</span>
+                </p>
+                <div>
+                  <Label htmlFor="communicationsSummary" className="text-sm font-medium mb-1.5 block">
+                    Summary of Prior Communications
+                  </Label>
+                  <Textarea
+                    id="communicationsSummary"
+                    value={form.communicationsSummary}
+                    onChange={(e) => update("communicationsSummary", e.target.value)}
+                    placeholder="e.g., I sent an email on Jan 5 requesting payment. They responded on Jan 10 saying they would pay within 30 days but never did..."
+                    rows={4}
+                    className="resize-none"
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="communicationsLastContactDate" className="text-sm font-medium mb-1.5 block">
+                      Date of Last Contact
+                    </Label>
+                    <Input
+                      id="communicationsLastContactDate"
+                      type="date"
+                      value={form.communicationsLastContactDate}
+                      onChange={(e) => update("communicationsLastContactDate", e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium mb-1.5 block">Communication Method</Label>
+                    <Select value={form.communicationsMethod} onValueChange={(v) => update("communicationsMethod", v)}>
+                      <SelectTrigger><SelectValue placeholder="Select method..." /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="email">Email</SelectItem>
+                        <SelectItem value="phone">Phone</SelectItem>
+                        <SelectItem value="letter">Letter / Mail</SelectItem>
+                        <SelectItem value="in-person">In Person</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+            )}
+            {/* ── Step 7: Evidence / Attachments ───────────────────────────── */}
+            {step === 7 && (
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
                   Upload supporting documents, photos, or contracts that strengthen your case.
@@ -667,7 +736,7 @@ export default function SubmitLetter() {
             <ChevronLeft className="w-4 h-4 mr-1" />
             Back
           </Button>
-          {step < 6 ? (
+          {step < 7 ? (
             <Button onClick={() => setStep((s) => s + 1)} disabled={!canProceed()}>
               Next
               <ChevronRight className="w-4 h-4 ml-1" />

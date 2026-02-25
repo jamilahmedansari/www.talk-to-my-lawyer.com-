@@ -173,6 +173,18 @@ export const appRouter = router({
           deadlineDate: z.string().optional(),
           additionalContext: z.string().optional(),
           tonePreference: z.enum(["firm", "moderate", "aggressive"]).optional(),
+          language: z.string().optional(),
+          priorCommunication: z.string().optional(),
+          deliveryMethod: z.string().optional(),
+          communications: z.object({
+            summary: z.string(),
+            lastContactDate: z.string().optional(),
+            method: z.enum(["email", "phone", "letter", "in-person", "other"]).optional(),
+          }).optional(),
+          toneAndDelivery: z.object({
+            tone: z.enum(["firm", "moderate", "aggressive"]),
+            deliveryMethod: z.enum(["email", "certified-mail", "hand-delivery"]).optional(),
+          }).optional(),
         }),
         priority: z.enum(["low", "normal", "high", "urgent"]).default("normal"),
       }))
@@ -838,6 +850,51 @@ export const appRouter = router({
         return { success: true, free: true };
       }),
 
+    // ─── Send for Review: generated_unlocked → pending_review (first-letter-free path) ───
+    sendForReview: subscriberProcedure
+      .input(z.object({ letterId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const letter = await getLetterRequestSafeForSubscriber(input.letterId, ctx.user.id);
+        if (!letter) throw new TRPCError({ code: "NOT_FOUND", message: "Letter not found" });
+        if (letter.status !== "generated_unlocked")
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Letter is not in generated_unlocked status" });
+
+        // Transition to pending_review
+        await updateLetterStatus(input.letterId, "pending_review");
+        await logReviewAction({
+          letterRequestId: input.letterId,
+          reviewerId: ctx.user.id,
+          actorType: "subscriber",
+          action: "subscriber_sent_for_review",
+          noteText: "Subscriber sent their first free letter for attorney review.",
+          noteVisibility: "user_visible",
+          fromStatus: "generated_unlocked",
+          toStatus: "pending_review",
+        });
+
+        // Send notification emails
+        try {
+          await sendLetterUnlockedEmail({
+            to: ctx.user.email ?? "",
+            name: ctx.user.name ?? "Subscriber",
+            subject: letter.subject,
+            letterId: input.letterId,
+            appUrl: getAppUrl(ctx.req),
+          });
+          await sendNewReviewNeededEmail({
+            to: "",
+            name: "Attorney Team",
+            letterSubject: letter.subject,
+            letterId: input.letterId,
+            letterType: letter.letterType,
+            jurisdiction: letter.jurisdictionState ?? "Unknown",
+            appUrl: getAppUrl(ctx.req),
+          });
+        } catch (e) { console.error("[sendForReview] Email error:", e); }
+
+        return { success: true };
+      }),
+
     // ─── Payment History: fetch from Stripe ───
     paymentHistory: protectedProcedure.query(async ({ ctx }) => {
       const { getStripe, getOrCreateStripeCustomer } = await import("./stripe");
@@ -863,6 +920,31 @@ export const appRouter = router({
       } catch (e) {
         console.error("[paymentHistory] Stripe error:", e);
         return [];
+      }
+    }),
+
+    // ─── Receipts: fetch Stripe invoices for current user ───
+    receipts: subscriberProcedure.query(async ({ ctx }) => {
+      const { getStripe, getOrCreateStripeCustomer } = await import("./stripe");
+      const stripe = getStripe();
+      try {
+        const customerId = await getOrCreateStripeCustomer(ctx.user.id, ctx.user.email ?? "", ctx.user.name);
+        const invoices = await stripe.invoices.list({ customer: customerId, limit: 50 });
+        return {
+          invoices: invoices.data.map((inv: any) => ({
+            id: inv.id,
+            date: inv.created,
+            amount: inv.amount_paid,
+            currency: inv.currency,
+            status: inv.status,
+            pdfUrl: inv.invoice_pdf ?? null,
+            receiptUrl: inv.hosted_invoice_url ?? null,
+            description: inv.lines?.data?.[0]?.description ?? "Payment",
+          })),
+        };
+      } catch (e) {
+        console.error("[receipts] Stripe error:", e);
+        return { invoices: [] };
       }
     }),
 

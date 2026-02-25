@@ -10,8 +10,9 @@ export * from "./_core/errors";
 export const ALLOWED_TRANSITIONS: Record<string, string[]> = {
   submitted: ["researching"],
   researching: ["drafting"],
-  drafting: ["generated_locked"], // AI pipeline complete, awaiting subscriber payment
-  generated_locked: ["pending_review"], // subscriber pays → sent to attorney review
+  drafting: ["generated_locked", "generated_unlocked"], // AI pipeline → locked (returning) or unlocked (first-letter-free)
+  generated_locked: ["generated_unlocked", "pending_review"], // free unlock or paid → attorney review
+  generated_unlocked: ["pending_review"], // subscriber sends for attorney review
   pending_review: ["under_review"],
   under_review: ["approved", "rejected", "needs_changes"],
   needs_changes: ["researching", "drafting"],
@@ -27,6 +28,7 @@ export const STATUS_CONFIG: Record<string, { label: string; color: string; bgCol
   researching: { label: "Researching", color: "text-indigo-600", bgColor: "bg-indigo-100" },
   drafting: { label: "AI Drafting", color: "text-purple-600", bgColor: "bg-purple-100" },
   generated_locked: { label: "Ready to Unlock", color: "text-yellow-700", bgColor: "bg-yellow-100" },
+  generated_unlocked: { label: "AI Draft Ready", color: "text-green-700", bgColor: "bg-green-100" },
   pending_review: { label: "Pending Review", color: "text-amber-600", bgColor: "bg-amber-100" },
   under_review: { label: "Under Review", color: "text-orange-600", bgColor: "bg-orange-100" },
   needs_changes: { label: "Needs Changes", color: "text-red-600", bgColor: "bg-red-100" },
@@ -86,10 +88,19 @@ export interface IntakeJson {
   desiredOutcome: string;
   deadlineDate?: string;
   additionalContext?: string;
-  tonePreference?: "firm" | "moderate" | "aggressive";
-  language?: string;
-  priorCommunication?: string;
-  deliveryMethod?: string;
+  tonePreference?: "firm" | "moderate" | "aggressive"; // kept for backwards compat
+  language?: string;                                     // e.g. "english", "spanish", "french"
+  priorCommunication?: string;                           // legacy simple field
+  deliveryMethod?: string;                               // legacy simple field
+  communications?: {                                     // structured prior communications
+    summary: string;
+    lastContactDate?: string;                            // ISO date string
+    method?: "email" | "phone" | "letter" | "in-person" | "other";
+  };
+  toneAndDelivery?: {                                    // structured tone + delivery
+    tone: "firm" | "moderate" | "aggressive";
+    deliveryMethod?: "email" | "certified-mail" | "hand-delivery";
+  };
 }
 
 // ─── Research Packet Shape ───

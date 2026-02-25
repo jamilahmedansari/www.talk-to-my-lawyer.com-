@@ -170,8 +170,12 @@ describe("ALLOWED_TRANSITIONS: completeness for all statuses", () => {
     expect(ALLOWED_TRANSITIONS["rejected"]).toBeUndefined();
   });
 
-  it("generated_locked only transitions to pending_review", () => {
-    expect(ALLOWED_TRANSITIONS["generated_locked"]).toEqual(["pending_review"]);
+  it("generated_locked transitions to generated_unlocked and pending_review", () => {
+    expect(ALLOWED_TRANSITIONS["generated_locked"]).toEqual(["generated_unlocked", "pending_review"]);
+  });
+
+  it("generated_unlocked transitions to pending_review", () => {
+    expect(ALLOWED_TRANSITIONS["generated_unlocked"]).toEqual(["pending_review"]);
   });
 
   it("needs_changes can transition to researching or drafting", () => {

@@ -58,9 +58,16 @@ function PaymentHistorySection({ portalMutate }: { portalMutate: () => void }) {
             <CreditCard className="w-4 h-4" />
             Payment History
           </CardTitle>
-          <Button variant="ghost" size="sm" onClick={portalMutate} className="text-xs">
-            <ExternalLink className="w-3 h-3 mr-1" /> Stripe Portal
-          </Button>
+          <div className="flex items-center gap-2">
+            <Link href="/subscriber/receipts">
+              <Button variant="outline" size="sm" className="text-xs">
+                <FileText className="w-3 h-3 mr-1" /> View All Receipts
+              </Button>
+            </Link>
+            <Button variant="ghost" size="sm" onClick={portalMutate} className="text-xs">
+              <ExternalLink className="w-3 h-3 mr-1" /> Stripe Portal
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>

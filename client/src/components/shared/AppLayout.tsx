@@ -44,6 +44,7 @@ function getNavItems(role: string): NavItem[] {
       { label: "Submit Letter", href: "/submit", icon: <PlusCircle className="w-4 h-4" /> },
       { label: "My Letters", href: "/letters", icon: <FileText className="w-4 h-4" /> },
       { label: "Billing", href: "/subscriber/billing", icon: <CreditCard className="w-4 h-4" /> },
+      { label: "Receipts", href: "/subscriber/receipts", icon: <FileText className="w-4 h-4" /> },
     ];
   }
   if (role === "employee") {

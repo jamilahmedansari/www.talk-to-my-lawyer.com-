@@ -251,6 +251,28 @@ export async function archiveLetterRequest(id: number, userId: number) {
   return result;
 }
 
+/**
+ * Count how many letters this user has that progressed past the AI pipeline
+ * (i.e., reached generated_locked, generated_unlocked, pending_review, etc.)
+ * Excludes the current letter being processed.
+ */
+export async function countCompletedLetters(userId: number, excludeLetterId?: number): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  const earlyStatuses = ["submitted", "researching", "drafting"];
+  const conditions = [
+    eq(letterRequests.userId, userId),
+    sql`${letterRequests.status} NOT IN (${sql.join(earlyStatuses.map(s => sql`${s}`), sql`, `)})`
+  ];
+  if (excludeLetterId) {
+    conditions.push(ne(letterRequests.id, excludeLetterId));
+  }
+  const result = await db.select({ count: sql<number>`count(*)` })
+    .from(letterRequests)
+    .where(and(...conditions));
+  return Number(result[0]?.count ?? 0);
+}
+
 // ═══════════════════════════════════════════════════════
 // LETTER VERSION HELPERS
 // ═══════════════════════════════════════════════════════

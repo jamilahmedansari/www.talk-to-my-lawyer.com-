@@ -21,7 +21,8 @@ export const LETTER_STATUSES = [
   "submitted",
   "researching",
   "drafting",
-  "generated_locked", // AI draft complete, awaiting subscriber payment to unlock
+  "generated_locked",   // AI draft complete, awaiting subscriber payment to unlock
+  "generated_unlocked", // First-letter free: AI draft visible, subscriber can send for review
   "pending_review",
   "under_review",
   "needs_changes",
@@ -69,7 +70,7 @@ export type Priority = (typeof PRIORITIES)[number];
 // ─── PostgreSQL Enums ───
 export const userRoleEnum = pgEnum("user_role", ["subscriber", "employee", "admin", "attorney"]);
 export const letterStatusEnum = pgEnum("letter_status", [
-  "submitted", "researching", "drafting", "generated_locked",
+  "submitted", "researching", "drafting", "generated_locked", "generated_unlocked",
   "pending_review", "under_review", "needs_changes", "approved", "rejected",
 ]);
 export const letterTypeEnum = pgEnum("letter_type", [

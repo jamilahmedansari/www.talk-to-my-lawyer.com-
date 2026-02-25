@@ -149,12 +149,19 @@ export function buildNormalizedPromptInput(
     desiredOutcome: trimOrDefault(intake.desiredOutcome, "Resolution of the matter"),
     deadlineDate: trimOrNull(intake.deadlineDate),
     additionalContext: trimOrNull(intake.additionalContext),
-    tonePreference: (["firm", "moderate", "aggressive"].includes(intake.tonePreference ?? "")
-      ? intake.tonePreference
+    tonePreference: (["firm", "moderate", "aggressive"].includes(
+      intake.toneAndDelivery?.tone ?? intake.tonePreference ?? ""
+    )
+      ? (intake.toneAndDelivery?.tone ?? intake.tonePreference)
       : "firm") as "firm" | "moderate" | "aggressive",
-    language: trimOrDefault((intake as any).language, "english"),
-    priorCommunication: trimOrNull((intake as any).priorCommunication),
-    deliveryMethod: trimOrDefault((intake as any).deliveryMethod, "certified_mail"),
+    language: trimOrDefault(intake.language, "english"),
+    priorCommunication: trimOrNull(
+      intake.communications?.summary ?? intake.priorCommunication
+    ),
+    deliveryMethod: trimOrDefault(
+      intake.toneAndDelivery?.deliveryMethod ?? intake.deliveryMethod,
+      "certified_mail"
+    ),
     timeline: safeArray((intake as any).timeline),
     evidenceSummary: trimOrNull((intake as any).evidenceSummary),
     userStatements: trimOrNull((intake as any).userStatements),
