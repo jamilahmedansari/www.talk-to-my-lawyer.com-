@@ -32,6 +32,72 @@ const STATUS_DISPLAY: Record<string, { label: string; color: string }> = {
   none: { label: "No Plan", color: "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200" },
 };
 
+function PaymentHistorySection({ portalMutate }: { portalMutate: () => void }) {
+  const { data: payments, isLoading } = trpc.billing.paymentHistory.useQuery();
+
+  const formatAmount = (amount: number, currency: string) => {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency: currency.toUpperCase() }).format(amount / 100);
+  };
+
+  const formatDate = (unix: number) => {
+    return new Date(unix * 1000).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+  };
+
+  const statusColor = (status: string) => {
+    if (status === "succeeded") return "bg-green-100 text-green-800";
+    if (status === "requires_payment_method" || status === "requires_action") return "bg-yellow-100 text-yellow-800";
+    if (status === "canceled") return "bg-red-100 text-red-800";
+    return "bg-slate-100 text-slate-800";
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base flex items-center gap-2">
+            <CreditCard className="w-4 h-4" />
+            Payment History
+          </CardTitle>
+          <Button variant="ghost" size="sm" onClick={portalMutate} className="text-xs">
+            <ExternalLink className="w-3 h-3 mr-1" /> Stripe Portal
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="flex justify-center py-6">
+            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : !payments || payments.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-6">No payments yet.</p>
+        ) : (
+          <div className="divide-y divide-border">
+            {payments.map((p) => (
+              <div key={p.id} className="flex items-center justify-between py-3 gap-4">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-foreground truncate">{p.description}</p>
+                  <p className="text-xs text-muted-foreground">{formatDate(p.created)}</p>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <Badge className={statusColor(p.status) + " text-xs"}>
+                    {p.status === "succeeded" ? "Paid" : p.status.replace(/_/g, " ")}
+                  </Badge>
+                  <span className="text-sm font-semibold">{formatAmount(p.amount, p.currency)}</span>
+                  {p.receiptUrl && (
+                    <a href={p.receiptUrl} target="_blank" rel="noopener noreferrer" className="text-[#3b82f6] hover:underline">
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function Billing() {
   const { user } = useAuth();
   const [location] = useLocation();
@@ -202,27 +268,8 @@ export default function Billing() {
         </Card>
       )}
 
-      {/* Payment History Note */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <CreditCard className="w-4 h-4" />
-            Payment History
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            View your complete payment history and download invoices in the{" "}
-            <button
-              onClick={() => billingPortalMutation.mutate()}
-              className="text-[#3b82f6] hover:underline font-medium"
-            >
-              Stripe Billing Portal
-            </button>
-            .
-          </p>
-        </CardContent>
-      </Card>
+      {/* Payment History */}
+      <PaymentHistorySection portalMutate={() => billingPortalMutation.mutate()} />
     </div>
   );
 }

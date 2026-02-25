@@ -120,6 +120,34 @@ export const appRouter = router({
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
+
+    completeOnboarding: protectedProcedure
+      .input(z.object({
+        role: z.enum(["subscriber", "employee", "attorney"]),
+        jurisdiction: z.string().optional(),
+        barNumber: z.string().optional(),
+        companyName: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const userId = ctx.user.id;
+        // Update user role
+        await updateUserRole(userId, input.role);
+        // If employee, auto-generate discount code
+        if (input.role === "employee") {
+          try {
+            await createDiscountCodeForEmployee(userId, ctx.user.name || "affiliate");
+          } catch (e) {
+            // Discount code may already exist if user re-onboards
+            console.log("[Onboarding] Discount code creation skipped (may already exist)", e);
+          }
+        }
+        const roleLabels: Record<string, string> = {
+          subscriber: "Your account is ready. Start submitting legal letters!",
+          employee: "Your affiliate account is set up with a unique discount code.",
+          attorney: "Your attorney profile is ready. Head to the Review Center.",
+        };
+        return { success: true, role: input.role, message: roleLabels[input.role] || "Account set up!" };
+      }),
   }),
 
   // ─── Subscriber: Letter Requests ───────────────────────────────────────────
@@ -782,6 +810,34 @@ export const appRouter = router({
 
         return { success: true, free: true };
       }),
+
+    // ─── Payment History: fetch from Stripe ───
+    paymentHistory: protectedProcedure.query(async ({ ctx }) => {
+      const { getStripe, getOrCreateStripeCustomer } = await import("./stripe");
+      const stripe = getStripe();
+      try {
+        const customerId = await getOrCreateStripeCustomer(ctx.user.id, ctx.user.email ?? "", ctx.user.name);
+        // Fetch recent payment intents for this customer
+        const paymentIntents = await stripe.paymentIntents.list({
+          customer: customerId,
+          limit: 25,
+          expand: ["data.latest_charge"],
+        });
+        return paymentIntents.data.map((pi: any) => ({
+          id: pi.id,
+          amount: pi.amount,
+          currency: pi.currency,
+          status: pi.status,
+          description: pi.description ?? "Letter unlock payment",
+          created: pi.created,
+          receiptUrl: pi.latest_charge?.receipt_url ?? null,
+          metadata: pi.metadata ?? {},
+        }));
+      } catch (e) {
+        console.error("[paymentHistory] Stripe error:", e);
+        return [];
+      }
+    }),
 
     // ─── Pay-to-unlock: one-time $200 checkout for a specific locked letter ───
     payToUnlock: subscriberProcedure

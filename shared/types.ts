@@ -87,6 +87,9 @@ export interface IntakeJson {
   deadlineDate?: string;
   additionalContext?: string;
   tonePreference?: "firm" | "moderate" | "aggressive";
+  language?: string;
+  priorCommunication?: string;
+  deliveryMethod?: string;
 }
 
 // ─── Research Packet Shape ───

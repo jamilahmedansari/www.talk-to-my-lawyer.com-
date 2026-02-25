@@ -680,6 +680,9 @@ function buildDraftingPrompt(intake: IntakeJson, research: ResearchPacket): stri
 - Desired Outcome: ${intake.desiredOutcome}
 - Deadline: ${intake.deadlineDate ?? "Not specified"}
 - Tone: ${intake.tonePreference ?? "firm"}
+- Language: ${intake.language ?? "english"}
+- Delivery Method: ${intake.deliveryMethod ?? "certified_mail"}
+${intake.priorCommunication ? `- Prior Communication: ${intake.priorCommunication}` : ""}
 ${intake.financials?.amountOwed ? `- Amount: $${intake.financials.amountOwed} ${intake.financials.currency ?? "USD"}` : ""}
 
 ## Research Packet (from Perplexity)

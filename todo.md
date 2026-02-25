@@ -504,3 +504,33 @@
 - [x] Vitest tests for affiliate DB helpers (27 tests passing)
 - [x] Vitest tests for tRPC affiliate procedures (role guards, CRUD, validation)
 - [x] Vitest tests for commission calculation logic (basis points, rounding, edge cases)
+
+## Phase 41: Feature Map Completion (from spec audit)
+
+### G. Admin Review Center Link
+- [x] Add "Review Center" link to admin sidebar in AppLayout.tsx
+
+### A. Onboarding Role Split
+- [x] Create Onboarding.tsx page (role selection + profile form)
+- [x] Add auth.completeOnboarding tRPC mutation
+- [x] Add /onboarding route in App.tsx
+- [x] Redirect new users to /onboarding after signup (via ProtectedRoute)
+- [x] Auto-generate discount code for employee role selection
+
+### C+B. Attorney Route Reorganization + SLA Dashboard
+- [x] Create client/src/pages/attorney/ directory
+- [x] Create attorney/Dashboard.tsx with SLA indicators (overdue > 24h)
+- [x] SLA calculated client-side from createdAt (no new tRPC query needed)
+- [x] Add /attorney, /attorney/queue, /attorney/:id routes in App.tsx
+- [x] Update attorney sidebar in AppLayout.tsx to use /attorney/* paths
+- [x] Keep /review/* routes as backward-compatible aliases
+### D. Resume Unfinished Draft
+- [x] Save form state to localStorage on step change in SubmitLetter.tsx
+- [x] On mount, check for saved draft and show Resume/Discard banner
+- [x] Clear draft from localStorage on successfu### F. Intake Form Structured Fields
+- [x] Add language, priorCommunication, deliveryMethod to NormalizedIntake + IntakeJson
+- [x] Update pipeline prompt to include these fields
+
+### E. In-App Payment History
+- [x] Add billing.paymentHistory tRPC query (Stripe API)
+- [x] Add Payment History section to Billing.tsx with receipt links

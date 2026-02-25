@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { ChevronRight, ChevronLeft, CheckCircle, FileText, MapPin, Users, AlignLeft, Target, Paperclip, Upload, X, File as FileIcon } from "lucide-react";
@@ -93,6 +93,8 @@ const INITIAL: FormData = {
   deliveryMethod: "certified_mail",
 };
 
+const DRAFT_KEY = "ttml_draft_letter";
+
 export default function SubmitLetter() {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormData>(INITIAL);
@@ -101,8 +103,51 @@ export default function SubmitLetter() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pipelineLetterId, setPipelineLetterId] = useState<number | null>(null);
   const [showPipeline, setShowPipeline] = useState(false);
+  const [showDraftBanner, setShowDraftBanner] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [, navigate] = useLocation();
+
+  // ── Resume draft: load saved draft on mount ─────────────────────────────
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(DRAFT_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.form && parsed.step) {
+          setShowDraftBanner(true);
+        }
+      }
+    } catch { /* ignore corrupt data */ }
+  }, []);
+
+  const resumeDraft = () => {
+    try {
+      const saved = localStorage.getItem(DRAFT_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.form) setForm({ ...INITIAL, ...parsed.form });
+        if (parsed.step) setStep(parsed.step);
+        toast.success("Draft restored!");
+      }
+    } catch { /* ignore */ }
+    setShowDraftBanner(false);
+  };
+
+  const discardDraft = () => {
+    localStorage.removeItem(DRAFT_KEY);
+    setShowDraftBanner(false);
+    toast.info("Draft discarded.");
+  };
+
+  // ── Save draft to localStorage on step/form change ──────────────────────
+  useEffect(() => {
+    // Only save if user has started filling out the form
+    if (form.letterType || form.subject || form.description) {
+      try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({ form, step, savedAt: Date.now() }));
+      } catch { /* storage full — ignore */ }
+    }
+  }, [form, step]);
 
   const { data: canSubmitData, isLoading: checkingSubscription } = trpc.billing.checkCanSubmit.useQuery();
 
@@ -206,6 +251,8 @@ export default function SubmitLetter() {
           )
         );
       }
+      // Clear saved draft on successful submission
+      localStorage.removeItem(DRAFT_KEY);
       toast.success("Letter submitted! AI pipeline has started.");
       setPipelineLetterId(letterId);
       setShowPipeline(true);
@@ -244,6 +291,23 @@ export default function SubmitLetter() {
   return (
     <AppLayout breadcrumb={[{ label: "Dashboard", href: "/dashboard" }, { label: "Submit Letter" }]}>
       <div className="max-w-2xl mx-auto space-y-6">
+        {/* Resume Draft Banner */}
+        {showDraftBanner && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <FileText className="w-5 h-5 text-blue-600 shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-blue-900">You have an unfinished draft</p>
+                <p className="text-xs text-blue-600">Would you like to continue where you left off?</p>
+              </div>
+            </div>
+            <div className="flex gap-2 shrink-0">
+              <Button variant="outline" size="sm" onClick={discardDraft}>Discard</Button>
+              <Button size="sm" onClick={resumeDraft}>Resume</Button>
+            </div>
+          </div>
+        )}
+
         {/* Step Progress */}
         <div className="flex items-center gap-1">
           {STEPS.map((s, i) => (

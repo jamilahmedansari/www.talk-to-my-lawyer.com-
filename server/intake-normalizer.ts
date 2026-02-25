@@ -58,6 +58,9 @@ interface NormalizedPromptInput {
   deadlineDate: string | null;
   additionalContext: string | null;
   tonePreference: "firm" | "moderate" | "aggressive";
+  language: string;
+  priorCommunication: string | null;
+  deliveryMethod: string;
   timeline: string[];
   evidenceSummary: string | null;
   userStatements: string | null;
@@ -149,6 +152,9 @@ export function buildNormalizedPromptInput(
     tonePreference: (["firm", "moderate", "aggressive"].includes(intake.tonePreference ?? "")
       ? intake.tonePreference
       : "firm") as "firm" | "moderate" | "aggressive",
+    language: trimOrDefault((intake as any).language, "english"),
+    priorCommunication: trimOrNull((intake as any).priorCommunication),
+    deliveryMethod: trimOrDefault((intake as any).deliveryMethod, "certified_mail"),
     timeline: safeArray((intake as any).timeline),
     evidenceSummary: trimOrNull((intake as any).evidenceSummary),
     userStatements: trimOrNull((intake as any).userStatements),

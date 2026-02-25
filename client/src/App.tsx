@@ -15,6 +15,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import Home from "./pages/Home";
 import Pricing from "./pages/Pricing";
 import FAQ from "./pages/FAQ";
+import Onboarding from "./pages/Onboarding";
 
 // Subscriber pages
 import SubscriberDashboard from "./pages/subscriber/Dashboard";
@@ -25,6 +26,7 @@ import Billing from "./pages/subscriber/Billing";
 
 // Attorney pages (Review Center)
 import EmployeeDashboard from "./pages/employee/Dashboard";
+import AttorneyDashboard from "./pages/attorney/Dashboard";
 import ReviewQueue from "./pages/employee/ReviewQueue";
 import ReviewDetail from "./pages/employee/ReviewDetail";
 
@@ -51,6 +53,11 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
       <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/onboarding">
+        <ProtectedRoute>
+          <Onboarding />
+        </ProtectedRoute>
+      </Route>
 
       {/* Subscriber — role-gated */}
       <Route path="/dashboard">
@@ -80,9 +87,25 @@ function Router() {
       </Route>
 
       {/* Attorney — Review Center (attorney + admin) */}
+      <Route path="/attorney">
+        <ProtectedRoute allowedRoles={["attorney", "admin"]}>
+          <AttorneyDashboard />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/attorney/queue">
+        <ProtectedRoute allowedRoles={["attorney", "admin"]}>
+          <ReviewQueue />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/attorney/:id">
+        <ProtectedRoute allowedRoles={["attorney", "admin"]}>
+          <ReviewDetail />
+        </ProtectedRoute>
+      </Route>
+      {/* Backward-compatible /review/* aliases */}
       <Route path="/review">
         <ProtectedRoute allowedRoles={["attorney", "admin"]}>
-          <EmployeeDashboard />
+          <AttorneyDashboard />
         </ProtectedRoute>
       </Route>
       <Route path="/review/queue">

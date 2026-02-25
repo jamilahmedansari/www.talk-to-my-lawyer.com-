@@ -55,8 +55,8 @@ function getNavItems(role: string): NavItem[] {
   }
   if (role === "attorney") {
     return [
-      { label: "Review Center", href: "/review", icon: <LayoutDashboard className="w-4 h-4" /> },
-      { label: "Queue", href: "/review/queue", icon: <ClipboardList className="w-4 h-4" /> },
+      { label: "Review Center", href: "/attorney", icon: <LayoutDashboard className="w-4 h-4" /> },
+      { label: "Queue", href: "/attorney/queue", icon: <ClipboardList className="w-4 h-4" /> },
     ];
   }
   if (role === "admin") {
@@ -64,6 +64,7 @@ function getNavItems(role: string): NavItem[] {
       { label: "Dashboard", href: "/admin", icon: <LayoutDashboard className="w-4 h-4" /> },
       { label: "All Letters", href: "/admin/letters", icon: <FileText className="w-4 h-4" /> },
       { label: "Users", href: "/admin/users", icon: <Users className="w-4 h-4" /> },
+      { label: "Review Center", href: "/review", icon: <ClipboardList className="w-4 h-4" /> },
       { label: "Affiliate Program", href: "/admin/affiliate", icon: <Briefcase className="w-4 h-4" /> },
       { label: "Failed Jobs", href: "/admin/jobs", icon: <AlertCircle className="w-4 h-4" /> },
     ];

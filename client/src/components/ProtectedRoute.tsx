@@ -16,7 +16,7 @@ interface ProtectedRouteProps {
  */
 export function getRoleDashboard(role: string): string {
   if (role === "admin") return "/admin";
-  if (role === "attorney") return "/review";
+  if (role === "attorney") return "/attorney";
   if (role === "employee") return "/employee";
   return "/dashboard"; // subscriber default
 }
