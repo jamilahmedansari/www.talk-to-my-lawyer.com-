@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
 
-type Role = "subscriber" | "employee" | "admin";
+type Role = "subscriber" | "employee" | "admin" | "attorney";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -16,7 +16,8 @@ interface ProtectedRouteProps {
  */
 export function getRoleDashboard(role: string): string {
   if (role === "admin") return "/admin";
-  if (role === "employee") return "/review";
+  if (role === "attorney") return "/review";
+  if (role === "employee") return "/employee";
   return "/dashboard"; // subscriber default
 }
 

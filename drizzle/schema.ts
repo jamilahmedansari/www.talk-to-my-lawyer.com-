@@ -67,7 +67,7 @@ export const PRIORITIES = ["low", "normal", "high", "urgent"] as const;
 export type Priority = (typeof PRIORITIES)[number];
 
 // ─── PostgreSQL Enums ───
-export const userRoleEnum = pgEnum("user_role", ["subscriber", "employee", "admin"]);
+export const userRoleEnum = pgEnum("user_role", ["subscriber", "employee", "admin", "attorney"]);
 export const letterStatusEnum = pgEnum("letter_status", [
   "submitted", "researching", "drafting", "generated_locked",
   "pending_review", "under_review", "needs_changes", "approved", "rejected",
@@ -77,7 +77,7 @@ export const letterTypeEnum = pgEnum("letter_type", [
   "employment-dispute", "consumer-complaint", "general-legal",
 ]);
 export const versionTypeEnum = pgEnum("version_type", ["ai_draft", "attorney_edit", "final_approved"]);
-export const actorTypeEnum = pgEnum("actor_type", ["system", "subscriber", "employee", "admin"]);
+export const actorTypeEnum = pgEnum("actor_type", ["system", "subscriber", "employee", "admin", "attorney"]);
 export const jobStatusEnum = pgEnum("job_status", ["queued", "running", "completed", "failed"]);
 export const jobTypeEnum = pgEnum("job_type", ["research", "draft_generation", "generation_pipeline", "retry"]);
 export const researchStatusEnum = pgEnum("research_status", ["queued", "running", "completed", "failed", "invalid"]);
@@ -85,6 +85,8 @@ export const priorityEnum = pgEnum("priority_level", ["low", "normal", "high", "
 export const noteVisibilityEnum = pgEnum("note_visibility", ["internal", "user_visible"]);
 export const subscriptionPlanEnum = pgEnum("subscription_plan", ["per_letter", "monthly", "annual"]);
 export const subscriptionStatusEnum = pgEnum("subscription_status", ["active", "canceled", "past_due", "trialing", "incomplete", "none"]);
+export const commissionStatusEnum = pgEnum("commission_status", ["pending", "paid", "voided"]);
+export const payoutStatusEnum = pgEnum("payout_status", ["pending", "processing", "completed", "rejected"]);
 
 // ═══════════════════════════════════════════════════════
 // TABLE: users
@@ -123,6 +125,7 @@ export const letterRequests = pgTable("letter_requests", {
   currentAiDraftVersionId: integer("current_ai_draft_version_id"),
   currentFinalVersionId: integer("current_final_version_id"),
   pdfUrl: text("pdf_url"),
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
   priority: priorityEnum("priority").default("normal").notNull(),
   lastStatusChangedAt: timestamp("last_status_changed_at", { withTimezone: true }).defaultNow(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -288,3 +291,73 @@ export const subscriptions = pgTable("subscriptions", {
 
 export type Subscription = typeof subscriptions.$inferSelect;
 export type InsertSubscription = typeof subscriptions.$inferInsert;
+
+// ═══════════════════════════════════════════════════════
+// TABLE: discount_codes (employee referral codes)
+// ═══════════════════════════════════════════════════════
+export const discountCodes = pgTable("discount_codes", {
+  id: serial("id").primaryKey(),
+  employeeId: integer("employee_id").notNull(),
+  code: varchar("code", { length: 50 }).notNull().unique(),
+  discountPercent: integer("discount_percent").default(20).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  usageCount: integer("usage_count").default(0).notNull(),
+  maxUses: integer("max_uses"), // null = unlimited
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({
+  codeIdx: index("idx_discount_codes_code").on(t.code),
+  employeeIdx: index("idx_discount_codes_employee_id").on(t.employeeId),
+}));
+
+export type DiscountCode = typeof discountCodes.$inferSelect;
+export type InsertDiscountCode = typeof discountCodes.$inferInsert;
+
+// ═══════════════════════════════════════════════════════
+// TABLE: commission_ledger (employee earnings from referrals)
+// ═══════════════════════════════════════════════════════
+export const commissionLedger = pgTable("commission_ledger", {
+  id: serial("id").primaryKey(),
+  employeeId: integer("employee_id").notNull(),
+  letterRequestId: integer("letter_request_id"),
+  subscriberId: integer("subscriber_id"),
+  discountCodeId: integer("discount_code_id"),
+  stripePaymentIntentId: varchar("stripe_payment_intent_id", { length: 255 }),
+  saleAmount: integer("sale_amount").notNull(), // in cents
+  commissionRate: integer("commission_rate").default(500).notNull(), // basis points (500 = 5%)
+  commissionAmount: integer("commission_amount").notNull(), // in cents
+  status: commissionStatusEnum("status").default("pending").notNull(),
+  paidAt: timestamp("paid_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({
+  employeeIdx: index("idx_commission_ledger_employee_id").on(t.employeeId),
+  statusIdx: index("idx_commission_ledger_status").on(t.status),
+  employeeStatusIdx: index("idx_commission_ledger_employee_status").on(t.employeeId, t.status),
+}));
+
+export type CommissionLedgerEntry = typeof commissionLedger.$inferSelect;
+export type InsertCommissionLedgerEntry = typeof commissionLedger.$inferInsert;
+
+// ═══════════════════════════════════════════════════════
+// TABLE: payout_requests (employee withdrawal requests)
+// ═══════════════════════════════════════════════════════
+export const payoutRequests = pgTable("payout_requests", {
+  id: serial("id").primaryKey(),
+  employeeId: integer("employee_id").notNull(),
+  amount: integer("amount").notNull(), // in cents
+  paymentMethod: varchar("payment_method", { length: 100 }).default("bank_transfer").notNull(),
+  paymentDetails: jsonb("payment_details"),
+  status: payoutStatusEnum("status").default("pending").notNull(),
+  processedAt: timestamp("processed_at", { withTimezone: true }),
+  processedBy: integer("processed_by"),
+  rejectionReason: text("rejection_reason"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({
+  employeeIdx: index("idx_payout_requests_employee_id").on(t.employeeId),
+  statusIdx: index("idx_payout_requests_status").on(t.status),
+}));
+
+export type PayoutRequest = typeof payoutRequests.$inferSelect;
+export type InsertPayoutRequest = typeof payoutRequests.$inferInsert;

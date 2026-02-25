@@ -292,8 +292,9 @@ export async function createLetterUnlockCheckout(params: {
   name?: string | null;
   letterId: number;
   origin: string;
+  discountCode?: string;
 }): Promise<{ url: string; sessionId: string }> {
-  const { userId, email, name, letterId, origin } = params;
+  const { userId, email, name, letterId, origin, discountCode } = params;
   const stripe = getStripe();
   const customerId = await getOrCreateStripeCustomer(userId, email, name);
 
@@ -309,6 +310,7 @@ export async function createLetterUnlockCheckout(params: {
       unlock_type: "letter_unlock",
       customer_email: email,
       customer_name: name ?? "",
+      ...(discountCode ? { discount_code: discountCode } : {}),
     },
     line_items: [
       {

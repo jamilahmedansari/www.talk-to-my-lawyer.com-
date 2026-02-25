@@ -23,10 +23,13 @@ import MyLetters from "./pages/subscriber/MyLetters";
 import LetterDetail from "./pages/subscriber/LetterDetail";
 import Billing from "./pages/subscriber/Billing";
 
-// Employee pages
+// Attorney pages (Review Center)
 import EmployeeDashboard from "./pages/employee/Dashboard";
 import ReviewQueue from "./pages/employee/ReviewQueue";
 import ReviewDetail from "./pages/employee/ReviewDetail";
+
+// Employee/Affiliate pages (placeholder — will be built)
+import EmployeeAffiliateDashboard from "./pages/employee/AffiliateDashboard";
 
 // Admin pages
 import AdminDashboard from "./pages/admin/Dashboard";
@@ -34,6 +37,7 @@ import AdminUsers from "./pages/admin/Users";
 import AdminJobs from "./pages/admin/Jobs";
 import AdminAllLetters from "./pages/admin/AllLetters";
 import AdminLetterDetail from "./pages/admin/LetterDetail";
+import AdminAffiliate from "./pages/admin/Affiliate";
 
 function Router() {
   return (
@@ -75,20 +79,37 @@ function Router() {
         </ProtectedRoute>
       </Route>
 
-      {/* Employee / Attorney — role-gated */}
+      {/* Attorney — Review Center (attorney + admin) */}
       <Route path="/review">
-        <ProtectedRoute allowedRoles={["employee", "admin"]}>
+        <ProtectedRoute allowedRoles={["attorney", "admin"]}>
           <EmployeeDashboard />
         </ProtectedRoute>
       </Route>
       <Route path="/review/queue">
-        <ProtectedRoute allowedRoles={["employee", "admin"]}>
+        <ProtectedRoute allowedRoles={["attorney", "admin"]}>
           <ReviewQueue />
         </ProtectedRoute>
       </Route>
       <Route path="/review/:id">
-        <ProtectedRoute allowedRoles={["employee", "admin"]}>
+        <ProtectedRoute allowedRoles={["attorney", "admin"]}>
           <ReviewDetail />
+        </ProtectedRoute>
+      </Route>
+
+      {/* Employee/Affiliate — affiliate dashboard */}
+      <Route path="/employee">
+        <ProtectedRoute allowedRoles={["employee", "admin"]}>
+          <EmployeeAffiliateDashboard />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/employee/referrals">
+        <ProtectedRoute allowedRoles={["employee", "admin"]}>
+          <EmployeeAffiliateDashboard />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/employee/earnings">
+        <ProtectedRoute allowedRoles={["employee", "admin"]}>
+          <EmployeeAffiliateDashboard />
         </ProtectedRoute>
       </Route>
 
@@ -116,6 +137,11 @@ function Router() {
       <Route path="/admin/letters/:id">
         <ProtectedRoute allowedRoles={["admin"]}>
           <AdminLetterDetail />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/affiliate">
+        <ProtectedRoute allowedRoles={["admin"]}>
+          <AdminAffiliate />
         </ProtectedRoute>
       </Route>
 

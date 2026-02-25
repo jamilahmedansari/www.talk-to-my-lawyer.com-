@@ -48,6 +48,13 @@ function getNavItems(role: string): NavItem[] {
   }
   if (role === "employee") {
     return [
+      { label: "Dashboard", href: "/employee", icon: <LayoutDashboard className="w-4 h-4" /> },
+      { label: "My Referrals", href: "/employee/referrals", icon: <Users className="w-4 h-4" /> },
+      { label: "Earnings", href: "/employee/earnings", icon: <CreditCard className="w-4 h-4" /> },
+    ];
+  }
+  if (role === "attorney") {
+    return [
       { label: "Review Center", href: "/review", icon: <LayoutDashboard className="w-4 h-4" /> },
       { label: "Queue", href: "/review/queue", icon: <ClipboardList className="w-4 h-4" /> },
     ];
@@ -57,6 +64,7 @@ function getNavItems(role: string): NavItem[] {
       { label: "Dashboard", href: "/admin", icon: <LayoutDashboard className="w-4 h-4" /> },
       { label: "All Letters", href: "/admin/letters", icon: <FileText className="w-4 h-4" /> },
       { label: "Users", href: "/admin/users", icon: <Users className="w-4 h-4" /> },
+      { label: "Affiliate Program", href: "/admin/affiliate", icon: <Briefcase className="w-4 h-4" /> },
       { label: "Failed Jobs", href: "/admin/jobs", icon: <AlertCircle className="w-4 h-4" /> },
     ];
   }
@@ -64,8 +72,9 @@ function getNavItems(role: string): NavItem[] {
 }
 
 function getRoleLabel(role: string): { label: string; color: string } {
-  if (role === "admin") return { label: "Admin", color: "bg-red-100 text-red-700" };
-  if (role === "employee") return { label: "Attorney", color: "bg-blue-100 text-blue-700" };
+  if (role === "admin") return { label: "Super Admin", color: "bg-red-100 text-red-700" };
+  if (role === "attorney") return { label: "Attorney", color: "bg-purple-100 text-purple-700" };
+  if (role === "employee") return { label: "Affiliate", color: "bg-blue-100 text-blue-700" };
   return { label: "Subscriber", color: "bg-green-100 text-green-700" };
 }
 

@@ -34,6 +34,23 @@ import {
   getUserById,
   purgeFailedJobs,
   updateLetterPdfUrl,
+  archiveLetterRequest,
+  createDiscountCodeForEmployee,
+  getDiscountCodeByEmployeeId,
+  getDiscountCodeByCode,
+  incrementDiscountCodeUsage,
+  getAllDiscountCodes,
+  updateDiscountCode,
+  createCommission,
+  getCommissionsByEmployeeId,
+  getEmployeeEarningsSummary,
+  getAllCommissions,
+  markCommissionsPaid,
+  createPayoutRequest,
+  getPayoutRequestsByEmployeeId,
+  getAllPayoutRequests,
+  processPayoutRequest,
+  getPayoutRequestById,
 } from "./db";
 import {
   sendJobFailedAlertEmail,
@@ -62,6 +79,13 @@ import {
 const employeeProcedure = protectedProcedure.use(({ ctx, next }) => {
   if (ctx.user.role !== "employee" && ctx.user.role !== "admin") {
     throw new TRPCError({ code: "FORBIDDEN", message: "Employee or Admin access required" });
+  }
+  return next({ ctx });
+});
+
+const attorneyProcedure = protectedProcedure.use(({ ctx, next }) => {
+  if (ctx.user.role !== "attorney" && ctx.user.role !== "admin") {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Attorney or Admin access required" });
   }
   return next({ ctx });
 });
@@ -273,6 +297,18 @@ export const appRouter = router({
         return { success: true };
       }),
 
+    archive: subscriberProcedure
+      .input(z.object({ letterId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const letter = await getLetterRequestById(input.letterId);
+        if (!letter || letter.userId !== ctx.user.id)
+          throw new TRPCError({ code: "NOT_FOUND" });
+        if (!["approved", "rejected"].includes(letter.status))
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Only completed letters can be archived" });
+        await archiveLetterRequest(input.letterId, ctx.user.id);
+        return { success: true };
+      }),
+
     uploadAttachment: subscriberProcedure
       .input(z.object({
         letterId: z.number(),
@@ -301,7 +337,7 @@ export const appRouter = router({
 
   // ─── Employee/Attorney: Review Center ─────────────────────────────────────
   review: router({
-    queue: employeeProcedure
+    queue: attorneyProcedure
       .input(z.object({
         status: z.string().optional(),
         unassigned: z.boolean().optional(),
@@ -312,7 +348,7 @@ export const appRouter = router({
         return getAllLetterRequests({ status: input?.status, unassigned: input?.unassigned });
       }),
 
-    letterDetail: employeeProcedure
+    letterDetail: attorneyProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ ctx, input }) => {
         const letter = await getLetterRequestById(input.id);
@@ -325,7 +361,7 @@ export const appRouter = router({
         return { letter, versions, actions, jobs, research, attachments: attachmentList };
       }),
 
-    claim: employeeProcedure
+    claim: attorneyProcedure
       .input(z.object({ letterId: z.number() }))
       .mutation(async ({ ctx, input }) => {
         const letter = await getLetterRequestById(input.letterId);
@@ -366,7 +402,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    approve: employeeProcedure
+    approve: attorneyProcedure
       .input(z.object({
         letterId: z.number(),
         finalContent: z.string().min(50),
@@ -439,7 +475,7 @@ export const appRouter = router({
         return { success: true, versionId, pdfUrl };
       }),
 
-    reject: employeeProcedure
+    reject: attorneyProcedure
       .input(z.object({
         letterId: z.number(),
         reason: z.string().min(10),
@@ -464,7 +500,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    requestChanges: employeeProcedure
+    requestChanges: attorneyProcedure
       .input(z.object({
         letterId: z.number(),
         internalNote: z.string().optional(),
@@ -492,7 +528,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    saveEdit: employeeProcedure
+    saveEdit: attorneyProcedure
       .input(z.object({ letterId: z.number(), content: z.string().min(50), note: z.string().optional() }))
       .mutation(async ({ ctx, input }) => {
         const letter = await getLetterRequestById(input.letterId);
@@ -512,11 +548,11 @@ export const appRouter = router({
     stats: adminProcedure.query(async () => getSystemStats()),
 
     users: adminProcedure
-      .input(z.object({ role: z.enum(["subscriber", "employee", "admin"]).optional() }).optional())
+      .input(z.object({ role: z.enum(["subscriber", "employee", "admin", "attorney"]).optional() }).optional())
       .query(async ({ input }) => getAllUsers(input?.role)),
 
     updateRole: adminProcedure
-      .input(z.object({ userId: z.number(), role: z.enum(["subscriber", "employee", "admin"]) }))
+      .input(z.object({ userId: z.number(), role: z.enum(["subscriber", "employee", "admin", "attorney"]) }))
       .mutation(async ({ input }) => { await updateUserRole(input.userId, input.role); return { success: true }; }),
 
     allLetters: adminProcedure
@@ -749,7 +785,7 @@ export const appRouter = router({
 
     // ─── Pay-to-unlock: one-time $200 checkout for a specific locked letter ───
     payToUnlock: subscriberProcedure
-      .input(z.object({ letterId: z.number() }))
+      .input(z.object({ letterId: z.number(), discountCode: z.string().optional() }))
       .mutation(async ({ ctx, input }) => {
         // Verify the letter belongs to this subscriber and is in generated_locked status
         const letter = await getLetterRequestSafeForSubscriber(input.letterId, ctx.user.id);
@@ -763,9 +799,146 @@ export const appRouter = router({
           name: ctx.user.name,
           letterId: input.letterId,
           origin,
+          discountCode: input.discountCode,
         });
         return result;
       }),
+  }),
+
+  // ─── Employee Affiliate System ──────────────────────────────────────────────
+  affiliate: router({
+    // Employee: get or create my discount code
+    myCode: employeeProcedure.query(async ({ ctx }) => {
+      let code = await getDiscountCodeByEmployeeId(ctx.user.id);
+      if (!code) {
+        code = await createDiscountCodeForEmployee(ctx.user.id, ctx.user.name ?? "EMP");
+      }
+      return code;
+    }),
+
+    // Employee: get my earnings summary
+    myEarnings: employeeProcedure.query(async ({ ctx }) => {
+      return getEmployeeEarningsSummary(ctx.user.id);
+    }),
+
+    // Employee: get my commission history
+    myCommissions: employeeProcedure.query(async ({ ctx }) => {
+      return getCommissionsByEmployeeId(ctx.user.id);
+    }),
+
+    // Employee: request a payout
+    requestPayout: employeeProcedure
+      .input(z.object({
+        amount: z.number().min(1000, "Minimum payout is $10.00"),
+        paymentMethod: z.string().default("bank_transfer"),
+        paymentDetails: z.object({
+          bankName: z.string().optional(),
+          accountLast4: z.string().optional(),
+          routingNumber: z.string().optional(),
+          paypalEmail: z.string().email().optional(),
+          venmoHandle: z.string().optional(),
+        }).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        // Verify employee has enough pending balance
+        const earnings = await getEmployeeEarningsSummary(ctx.user.id);
+        if (earnings.pending < input.amount) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: `Insufficient pending balance. Available: $${(earnings.pending / 100).toFixed(2)}` });
+        }
+        const result = await createPayoutRequest({
+          employeeId: ctx.user.id,
+          amount: input.amount,
+          paymentMethod: input.paymentMethod,
+          paymentDetails: input.paymentDetails,
+        });
+        return { success: true, payoutRequestId: result.insertId };
+      }),
+
+    // Employee: get my payout requests
+    myPayouts: employeeProcedure.query(async ({ ctx }) => {
+      return getPayoutRequestsByEmployeeId(ctx.user.id);
+    }),
+
+    // Public: validate a discount code (for checkout)
+    validateCode: publicProcedure
+      .input(z.object({ code: z.string().min(1) }))
+      .query(async ({ input }) => {
+        const code = await getDiscountCodeByCode(input.code);
+        if (!code || !code.isActive) return { valid: false, discountPercent: 0 };
+        if (code.maxUses && code.usageCount >= code.maxUses) return { valid: false, discountPercent: 0 };
+        if (code.expiresAt && new Date(code.expiresAt) < new Date()) return { valid: false, discountPercent: 0 };
+        return { valid: true, discountPercent: code.discountPercent };
+      }),
+
+    // ─── Admin: Affiliate Oversight ──────────────────────────────────────────
+    adminAllCodes: adminProcedure.query(async () => getAllDiscountCodes()),
+
+    adminAllCommissions: adminProcedure.query(async () => getAllCommissions()),
+
+    adminAllPayouts: adminProcedure.query(async () => getAllPayoutRequests()),
+
+    adminUpdateCode: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        isActive: z.boolean().optional(),
+        discountPercent: z.number().min(1).max(100).optional(),
+        maxUses: z.number().nullable().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await updateDiscountCode(id, data);
+        return { success: true };
+      }),
+
+    adminProcessPayout: adminProcedure
+      .input(z.object({
+        payoutId: z.number(),
+        action: z.enum(["completed", "rejected"]),
+        rejectionReason: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const payout = await getPayoutRequestById(input.payoutId);
+        if (!payout) throw new TRPCError({ code: "NOT_FOUND" });
+        if (payout.status !== "pending") throw new TRPCError({ code: "BAD_REQUEST", message: "Payout already processed" });
+
+        if (input.action === "completed") {
+          // Mark related pending commissions as paid
+          const commissions = await getCommissionsByEmployeeId(payout.employeeId);
+          const pendingIds = commissions
+            .filter(c => c.status === "pending")
+            .map(c => c.id);
+          if (pendingIds.length > 0) {
+            await markCommissionsPaid(pendingIds);
+          }
+        }
+
+        await processPayoutRequest(input.payoutId, ctx.user.id, input.action, input.rejectionReason);
+        return { success: true };
+      }),
+
+    adminEmployeePerformance: adminProcedure.query(async () => {
+      const employees = await getEmployees();
+      const performance = await Promise.all(
+        employees.map(async (emp) => {
+          const earnings = await getEmployeeEarningsSummary(emp.id);
+          const code = await getDiscountCodeByEmployeeId(emp.id);
+          return {
+            employeeId: emp.id,
+            name: emp.name,
+            email: emp.email,
+            role: emp.role,
+            discountCode: code?.code ?? null,
+            codeActive: code?.isActive ?? false,
+            usageCount: code?.usageCount ?? 0,
+            totalEarned: earnings.totalEarned,
+            pending: earnings.pending,
+            paid: earnings.paid,
+            referralCount: earnings.referralCount,
+          };
+        })
+      );
+      return performance;
+    }),
   }),
 });
 export type AppRouter = typeof appRouter;

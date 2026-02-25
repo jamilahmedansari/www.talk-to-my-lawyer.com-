@@ -4,9 +4,12 @@ import postgres from "postgres";
 import type { InsertUser } from "../drizzle/schema";
 import {
   attachments,
+  commissionLedger,
+  discountCodes,
   letterRequests,
   letterVersions,
   notifications,
+  payoutRequests,
   researchRuns,
   reviewActions,
   users,
@@ -82,14 +85,14 @@ export async function getUserById(id: number) {
   return result[0];
 }
 
-export async function getAllUsers(role?: "subscriber" | "employee" | "admin") {
+export async function getAllUsers(role?: "subscriber" | "employee" | "admin" | "attorney") {
   const db = await getDb();
   if (!db) return [];
   if (role) return db.select().from(users).where(eq(users.role, role)).orderBy(desc(users.createdAt));
   return db.select().from(users).orderBy(desc(users.createdAt));
 }
 
-export async function updateUserRole(userId: number, role: "subscriber" | "employee" | "admin") {
+export async function updateUserRole(userId: number, role: "subscriber" | "employee" | "admin" | "attorney") {
   const db = await getDb();
   if (!db) return;
   await db.update(users).set({ role, updatedAt: new Date() }).where(eq(users.id, userId));
@@ -144,7 +147,9 @@ export async function getLetterRequestById(id: number) {
 export async function getLetterRequestsByUserId(userId: number) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(letterRequests).where(eq(letterRequests.userId, userId)).orderBy(desc(letterRequests.createdAt));
+  return db.select().from(letterRequests).where(
+    and(eq(letterRequests.userId, userId), isNull(letterRequests.archivedAt))
+  ).orderBy(desc(letterRequests.createdAt));
 }
 
 /** Subscriber-safe: never returns AI draft, attorney edits, or internal research data */
@@ -234,6 +239,15 @@ export async function updateLetterPdfUrl(id: number, pdfUrl: string) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.update(letterRequests).set({ pdfUrl, updatedAt: new Date() } as any).where(eq(letterRequests.id, id));
+}
+
+export async function archiveLetterRequest(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.update(letterRequests)
+    .set({ archivedAt: new Date(), updatedAt: new Date() } as any)
+    .where(and(eq(letterRequests.id, id), eq(letterRequests.userId, userId)));
+  return result;
 }
 
 // ═══════════════════════════════════════════════════════
@@ -546,4 +560,200 @@ export async function getSystemStats() {
     totalUsers: Number(totalUsers?.count ?? 0),
     subscribers: Number(subscribers?.count ?? 0),
   };
+}
+
+// ═══════════════════════════════════════════════════════
+// DISCOUNT CODE HELPERS
+// ═══════════════════════════════════════════════════════
+
+function generateDiscountCode(employeeName: string): string {
+  const prefix = (employeeName || "EMP")
+    .toUpperCase()
+    .replace(/[^A-Z]/g, "")
+    .slice(0, 4);
+  const suffix = Math.random().toString(36).substring(2, 8).toUpperCase();
+  return `${prefix}-${suffix}`;
+}
+
+export async function createDiscountCodeForEmployee(employeeId: number, employeeName: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  // Check if employee already has a code
+  const existing = await db.select().from(discountCodes).where(eq(discountCodes.employeeId, employeeId)).limit(1);
+  if (existing.length > 0) return existing[0];
+  const code = generateDiscountCode(employeeName);
+  const result = await db.insert(discountCodes).values({
+    employeeId,
+    code,
+    discountPercent: 20,
+    isActive: true,
+    usageCount: 0,
+  }).returning();
+  return result[0];
+}
+
+export async function getDiscountCodeByEmployeeId(employeeId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(discountCodes).where(eq(discountCodes.employeeId, employeeId)).limit(1);
+  return result[0];
+}
+
+export async function getDiscountCodeByCode(code: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const normalizedCode = code.trim().toUpperCase();
+  const result = await db.select().from(discountCodes).where(eq(discountCodes.code, normalizedCode)).limit(1);
+  return result[0];
+}
+
+export async function incrementDiscountCodeUsage(codeId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(discountCodes).set({
+    usageCount: sql`${discountCodes.usageCount} + 1`,
+    updatedAt: new Date(),
+  }).where(eq(discountCodes.id, codeId));
+}
+
+export async function getAllDiscountCodes() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(discountCodes).orderBy(desc(discountCodes.createdAt));
+}
+
+export async function updateDiscountCode(id: number, data: { isActive?: boolean; discountPercent?: number; maxUses?: number | null }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(discountCodes).set({ ...data, updatedAt: new Date() }).where(eq(discountCodes.id, id));
+}
+
+// ═══════════════════════════════════════════════════════
+// COMMISSION LEDGER HELPERS
+// ═══════════════════════════════════════════════════════
+
+export async function createCommission(data: {
+  employeeId: number;
+  letterRequestId?: number;
+  subscriberId?: number;
+  discountCodeId?: number;
+  stripePaymentIntentId?: string;
+  saleAmount: number; // cents
+  commissionRate?: number; // basis points, default 500 = 5%
+  commissionAmount: number; // cents
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(commissionLedger).values({
+    employeeId: data.employeeId,
+    letterRequestId: data.letterRequestId,
+    subscriberId: data.subscriberId,
+    discountCodeId: data.discountCodeId,
+    stripePaymentIntentId: data.stripePaymentIntentId,
+    saleAmount: data.saleAmount,
+    commissionRate: data.commissionRate ?? 500,
+    commissionAmount: data.commissionAmount,
+    status: "pending",
+  }).returning({ insertId: commissionLedger.id });
+  return result[0];
+}
+
+export async function getCommissionsByEmployeeId(employeeId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(commissionLedger).where(eq(commissionLedger.employeeId, employeeId)).orderBy(desc(commissionLedger.createdAt));
+}
+
+export async function getEmployeeEarningsSummary(employeeId: number) {
+  const db = await getDb();
+  if (!db) return { totalEarned: 0, pending: 0, paid: 0, referralCount: 0 };
+  const all = await db.select({
+    status: commissionLedger.status,
+    amount: commissionLedger.commissionAmount,
+  }).from(commissionLedger).where(eq(commissionLedger.employeeId, employeeId));
+  let totalEarned = 0, pending = 0, paid = 0;
+  for (const row of all) {
+    if (row.status === "voided") continue;
+    totalEarned += row.amount;
+    if (row.status === "pending") pending += row.amount;
+    if (row.status === "paid") paid += row.amount;
+  }
+  const referralCount = all.filter(r => r.status !== "voided").length;
+  return { totalEarned, pending, paid, referralCount };
+}
+
+export async function getAllCommissions() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(commissionLedger).orderBy(desc(commissionLedger.createdAt));
+}
+
+export async function markCommissionsPaid(commissionIds: number[]) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(commissionLedger).set({
+    status: "paid",
+    paidAt: new Date(),
+  }).where(inArray(commissionLedger.id, commissionIds));
+}
+
+// ═══════════════════════════════════════════════════════
+// PAYOUT REQUEST HELPERS
+// ═══════════════════════════════════════════════════════
+
+export async function createPayoutRequest(data: {
+  employeeId: number;
+  amount: number; // cents
+  paymentMethod?: string;
+  paymentDetails?: unknown;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(payoutRequests).values({
+    employeeId: data.employeeId,
+    amount: data.amount,
+    paymentMethod: data.paymentMethod ?? "bank_transfer",
+    paymentDetails: data.paymentDetails as any,
+    status: "pending",
+  }).returning({ insertId: payoutRequests.id });
+  return result[0];
+}
+
+export async function getPayoutRequestsByEmployeeId(employeeId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(payoutRequests).where(eq(payoutRequests.employeeId, employeeId)).orderBy(desc(payoutRequests.createdAt));
+}
+
+export async function getAllPayoutRequests() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(payoutRequests).orderBy(desc(payoutRequests.createdAt));
+}
+
+export async function processPayoutRequest(
+  id: number,
+  processedBy: number,
+  action: "completed" | "rejected",
+  rejectionReason?: string
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const updateData: Record<string, unknown> = {
+    status: action,
+    processedAt: new Date(),
+    processedBy,
+    updatedAt: new Date(),
+  };
+  if (action === "rejected" && rejectionReason) {
+    updateData.rejectionReason = rejectionReason;
+  }
+  await db.update(payoutRequests).set(updateData as any).where(eq(payoutRequests.id, id));
+}
+
+export async function getPayoutRequestById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(payoutRequests).where(eq(payoutRequests.id, id)).limit(1);
+  return result[0];
 }

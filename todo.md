@@ -463,3 +463,44 @@
 - [x] AppLayout: add toast.info on logout
 - [x] OnboardingModal: add toast.success when user finishes onboarding and clicks "Submit Your First Letter"
 - [x] Run tests, save checkpoint
+
+## Phase 40: Employee Affiliate System (GAP 3)
+
+### Database Schema
+- [x] Add discount_codes table (code, employeeId, discountPercent, usageCount, maxUses, isActive, expiresAt)
+- [x] Add commission_ledger table (employeeId, letterRequestId, stripePaymentIntentId, saleAmount, commissionRate, commissionAmount, status)
+- [x] Add payout_requests table (employeeId, amount, paymentMethod, paymentDetails, status, processedAt, processedBy, rejectionReason)
+- [x] Add commission_status and payout_status enums
+- [x] Apply migration to Supabase via MCP apply_migration
+- [x] Add indexes for performance
+
+### Backend (tRPC + DB helpers)
+- [x] Auto-generate discount code on employee role assignment
+- [x] Employee: getMyDiscountCode query
+- [x] Employee: getMyEarnings query (total earned, pending, paid, referral count)
+- [x] Employee: getMyCommissions query (list with letter details)
+- [x] Employee: requestPayout mutation (validate balance >= amount)
+- [x] Employee: getMyPayoutRequests query
+- [x] Admin: getAllCommissions query
+- [x] Admin: getAllPayoutRequests query
+- [x] Admin: processPayoutRequest mutation (approve/reject)
+- [x] Stripe webhook: create commission on letter unlock payment with discount code
+
+### Employee Dashboard UI
+- [x] Earnings summary cards (Total Earned, Pending, Paid Out, Referrals)
+- [x] Discount code card with copy button
+- [x] Commission history table
+- [x] Payout request form + history
+- [x] Share link generator
+
+### Admin Affiliate Oversight
+- [x] Commissions overview tab in admin dashboard
+- [x] Payout requests management (approve/reject with notes)
+- [x] Employee performance table (referrals, earnings, conversion rate)
+- [x] Discount code management (toggle active/inactive)
+- [x] Admin sidebar link to /admin/affiliate
+
+### Tests
+- [x] Vitest tests for affiliate DB helpers (27 tests passing)
+- [x] Vitest tests for tRPC affiliate procedures (role guards, CRUD, validation)
+- [x] Vitest tests for commission calculation logic (basis points, rounding, edge cases)

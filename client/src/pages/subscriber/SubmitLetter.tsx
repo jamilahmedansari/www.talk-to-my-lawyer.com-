@@ -13,6 +13,7 @@ import { ChevronRight, ChevronLeft, CheckCircle, FileText, MapPin, Users, AlignL
 import { LETTER_TYPE_CONFIG, US_STATES } from "../../../../shared/types";
 import { AlertCircle, Scale } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import PipelineProgressModal from "@/components/PipelineProgressModal";
 import { Link } from "wouter";
 
 const STEPS = [
@@ -63,6 +64,9 @@ interface FormData {
   amountOwed: string;
   desiredOutcome: string;
   deadlineDate: string;
+  language: string;
+  priorCommunication: string;
+  deliveryMethod: string;
 }
 
 const INITIAL: FormData = {
@@ -84,6 +88,9 @@ const INITIAL: FormData = {
   amountOwed: "",
   desiredOutcome: "",
   deadlineDate: "",
+  language: "english",
+  priorCommunication: "",
+  deliveryMethod: "certified_mail",
 };
 
 export default function SubmitLetter() {
@@ -92,6 +99,8 @@ export default function SubmitLetter() {
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pipelineLetterId, setPipelineLetterId] = useState<number | null>(null);
+  const [showPipeline, setShowPipeline] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [, navigate] = useLocation();
 
@@ -177,6 +186,9 @@ export default function SubmitLetter() {
         deadlineDate: form.deadlineDate || undefined,
         additionalContext: form.additionalContext || undefined,
         tonePreference: form.tonePreference,
+        language: form.language,
+        priorCommunication: form.priorCommunication || undefined,
+        deliveryMethod: form.deliveryMethod,
       };
       const result = await submit.mutateAsync({
         letterType: form.letterType as any,
@@ -195,7 +207,8 @@ export default function SubmitLetter() {
         );
       }
       toast.success("Letter submitted! AI pipeline has started.");
-      navigate(`/letters/${letterId}`);
+      setPipelineLetterId(letterId);
+      setShowPipeline(true);
     } catch (err: any) {
       toast.error(err?.message ?? "Submission failed");
     } finally {
@@ -450,6 +463,47 @@ export default function SubmitLetter() {
                   <p className="text-xs text-muted-foreground mt-1">Date by which you expect a response or action.</p>
                 </div>
 
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium mb-1.5 block">Language Preference</Label>
+                    <Select value={form.language} onValueChange={(v) => update("language", v)}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="english">English</SelectItem>
+                        <SelectItem value="spanish">Spanish</SelectItem>
+                        <SelectItem value="french">French</SelectItem>
+                        <SelectItem value="portuguese">Portuguese</SelectItem>
+                        <SelectItem value="chinese">Chinese</SelectItem>
+                        <SelectItem value="arabic">Arabic</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium mb-1.5 block">Prior Communication?</Label>
+                    <Select value={form.priorCommunication} onValueChange={(v) => update("priorCommunication", v)}>
+                      <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No prior contact</SelectItem>
+                        <SelectItem value="verbal">Verbal only</SelectItem>
+                        <SelectItem value="written">Written (email/letter)</SelectItem>
+                        <SelectItem value="both">Both verbal and written</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium mb-1.5 block">Delivery Method</Label>
+                    <Select value={form.deliveryMethod} onValueChange={(v) => update("deliveryMethod", v)}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="certified_mail">Certified Mail</SelectItem>
+                        <SelectItem value="email">Email Only</SelectItem>
+                        <SelectItem value="both">Both (Mail + Email)</SelectItem>
+                        <SelectItem value="hand_delivery">Hand Delivery</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
                 {/* Summary */}
                 <div className="bg-muted/50 rounded-xl p-4 space-y-2">
                   <h4 className="text-sm font-semibold text-foreground">Submission Summary</h4>
@@ -562,6 +616,14 @@ export default function SubmitLetter() {
           )}
         </div>
       </div>
+      <PipelineProgressModal
+        open={showPipeline}
+        onClose={() => {
+          setShowPipeline(false);
+          if (pipelineLetterId) navigate(`/letters/${pipelineLetterId}`);
+        }}
+        letterId={pipelineLetterId}
+      />
     </AppLayout>
   );
 }

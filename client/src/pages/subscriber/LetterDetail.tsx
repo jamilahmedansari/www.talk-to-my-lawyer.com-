@@ -6,7 +6,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { FileText, Download, MessageSquare, ArrowLeft, CheckCircle, AlertCircle, Send, Clock } from "lucide-react";
+import { FileText, Download, MessageSquare, ArrowLeft, CheckCircle, AlertCircle, Send, Clock, Copy, Trash2 } from "lucide-react";
 import { Link, useParams, useSearch } from "wouter";
 import { LETTER_TYPE_CONFIG } from "../../../../shared/types";
 import { useState, useEffect } from "react";
@@ -76,6 +76,33 @@ export default function LetterDetail() {
       }
     },
   });
+
+  const archiveMutation = trpc.letters.archive.useMutation({
+    onSuccess: () => {
+      toast.success("Letter archived successfully.");
+      window.history.back();
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const handleCopyToClipboard = () => {
+    const finalVer = data?.versions?.find((v: any) => v.versionType === "final_approved");
+    if (!finalVer) {
+      toast.error("No approved letter content to copy.");
+      return;
+    }
+    navigator.clipboard.writeText(finalVer.content).then(() => {
+      toast.success("Letter content copied to clipboard!");
+    }).catch(() => {
+      toast.error("Failed to copy to clipboard.");
+    });
+  };
+
+  const handleArchive = () => {
+    if (confirm("Are you sure you want to archive this letter? It will be hidden from your letters list.")) {
+      archiveMutation.mutate({ letterId });
+    }
+  };
 
   const updateMutation = trpc.letters.updateForChanges.useMutation({
     onSuccess: () => {
@@ -223,12 +250,25 @@ export default function LetterDetail() {
                 </div>
               </div>
             </div>
-            {letter.status === "approved" && finalVersion && (
-              <Button onClick={handleDownloadPdf} size="sm" className="flex-shrink-0">
-                <Download className="w-4 h-4 mr-2" />
-                {(data?.letter as any)?.pdfUrl ? "Download PDF" : "Download"}
-              </Button>
-            )}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {letter.status === "approved" && finalVersion && (
+                <>
+                  <Button onClick={handleCopyToClipboard} size="sm" variant="outline" className="bg-background">
+                    <Copy className="w-4 h-4 mr-1" />
+                    Copy
+                  </Button>
+                  <Button onClick={handleDownloadPdf} size="sm">
+                    <Download className="w-4 h-4 mr-1" />
+                    {(data?.letter as any)?.pdfUrl ? "PDF" : "Download"}
+                  </Button>
+                </>
+              )}
+              {["approved", "rejected"].includes(letter.status) && (
+                <Button onClick={handleArchive} size="sm" variant="ghost" className="text-muted-foreground hover:text-destructive" disabled={archiveMutation.isPending}>
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -318,10 +358,16 @@ export default function LetterDetail() {
                   <CheckCircle className="w-4 h-4" />
                   Final Approved Letter
                 </CardTitle>
-                <Button onClick={handleDownloadPdf} size="sm" variant="outline" className="bg-background border-green-300 text-green-700 hover:bg-green-50">
-                  <Download className="w-3.5 h-3.5 mr-1.5" />
-                  {(data?.letter as any)?.pdfUrl ? "Download PDF" : "Download"}
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button onClick={handleCopyToClipboard} size="sm" variant="outline" className="bg-background border-green-300 text-green-700 hover:bg-green-50">
+                    <Copy className="w-3.5 h-3.5 mr-1.5" />
+                    Copy
+                  </Button>
+                  <Button onClick={handleDownloadPdf} size="sm" variant="outline" className="bg-background border-green-300 text-green-700 hover:bg-green-50">
+                    <Download className="w-3.5 h-3.5 mr-1.5" />
+                    {(data?.letter as any)?.pdfUrl ? "PDF" : "Download"}
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>

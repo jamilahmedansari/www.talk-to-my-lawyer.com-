@@ -7,7 +7,11 @@ import type { Request, Response } from "express";
 import Stripe from "stripe";
 import { ENV } from "./_core/env";
 import { getStripe, activateSubscription } from "./stripe";
-import { getDb, updateLetterStatus, logReviewAction, getLetterRequestById, getUserById, createNotification } from "./db";
+import {
+  getDb, updateLetterStatus, logReviewAction, getLetterRequestById,
+  getUserById, createNotification, getDiscountCodeByCode,
+  incrementDiscountCodeUsage, createCommission,
+} from "./db";
 import { sendLetterApprovedEmail, sendLetterUnlockedEmail } from "./email";
 import { users } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
@@ -130,6 +134,33 @@ export async function stripeWebhookHandler(req: Request, res: Response): Promise
                     }).catch(console.error);
                   }
                   console.log(`[StripeWebhook] Letter #${letterId} unlocked → pending_review`);
+
+                  // ─── Commission tracking: if a discount code was used ───
+                  const discountCodeStr = session.metadata?.discount_code;
+                  if (discountCodeStr) {
+                    try {
+                      const discountCode = await getDiscountCodeByCode(discountCodeStr);
+                      if (discountCode && discountCode.isActive) {
+                        await incrementDiscountCodeUsage(discountCode.id);
+                        const saleAmount = session.amount_total ?? 20000; // cents
+                        const commissionRate = 500; // 5% = 500 basis points
+                        const commissionAmount = Math.round(saleAmount * commissionRate / 10000);
+                        await createCommission({
+                          employeeId: discountCode.employeeId,
+                          letterRequestId: letterId,
+                          subscriberId: userId,
+                          discountCodeId: discountCode.id,
+                          stripePaymentIntentId: paymentIntentId ?? undefined,
+                          saleAmount,
+                          commissionRate,
+                          commissionAmount,
+                        });
+                        console.log(`[StripeWebhook] Commission created: $${(commissionAmount / 100).toFixed(2)} for employee #${discountCode.employeeId}`);
+                      }
+                    } catch (commErr) {
+                      console.error(`[StripeWebhook] Commission tracking error:`, commErr);
+                    }
+                  }
                 } else {
                   console.warn(`[StripeWebhook] Letter #${letterId} not in generated_locked (status: ${letter?.status})`);
                 }
