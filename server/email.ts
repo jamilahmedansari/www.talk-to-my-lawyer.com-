@@ -10,7 +10,9 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = process.env.RESEND_FROM_EMAIL ?? "noreply@resend.dev";
 const APP_NAME = "Talk to My Lawyer";
 const BRAND_COLOR = "#2563EB"; // blue-600
-const BRAND_DARK = "#1E3A5F";
+const BRAND_DARK = "#0F2744"; // deep navy
+const BRAND_ACCENT = "#1D4ED8"; // blue-700 for gradient
+const LOGO_URL = "https://files.manuscdn.com/user_upload_by_module/session_file/310419663031738932/OabHhALgbskSzGQq.png";
 
 // ─── HTML Template Builder ───────────────────────────────────────────────────
 
@@ -21,69 +23,98 @@ function buildEmailHtml(opts: {
   ctaText?: string;
   ctaUrl?: string;
   footerNote?: string;
+  accentColor?: string;
 }): string {
+  const accent = opts.accentColor ?? BRAND_COLOR;
   const cta = opts.ctaText && opts.ctaUrl
     ? `
     <tr>
-      <td align="center" style="padding: 24px 0 8px;">
+      <td align="center" style="padding:28px 0 8px;">
         <table border="0" cellpadding="0" cellspacing="0">
           <tr>
-            <td align="center" bgcolor="${BRAND_COLOR}" style="border-radius: 8px;">
+            <td align="center" style="border-radius:8px;background:linear-gradient(135deg,${accent} 0%,${BRAND_ACCENT} 100%);">
               <a href="${opts.ctaUrl}" target="_blank"
-                style="display:inline-block;padding:14px 32px;font-family:Inter,Arial,sans-serif;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:8px;">
-                ${opts.ctaText}
+                style="display:inline-block;padding:15px 36px;font-family:Inter,Arial,sans-serif;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:8px;letter-spacing:0.2px;">
+                ${opts.ctaText} &rarr;
               </a>
             </td>
           </tr>
         </table>
-        <p style="margin:12px 0 0;font-family:Inter,Arial,sans-serif;font-size:13px;color:#6B7280;">
-          Or copy this link: <a href="${opts.ctaUrl}" style="color:${BRAND_COLOR};">${opts.ctaUrl}</a>
+        <p style="margin:14px 0 0;font-family:Inter,Arial,sans-serif;font-size:12px;color:#9CA3AF;">
+          Button not working? <a href="${opts.ctaUrl}" style="color:${accent};text-decoration:underline;">Click here</a>
         </p>
       </td>
     </tr>`
     : "";
 
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <title>${opts.title}</title>
+  <!--[if mso]><style>table{border-collapse:collapse;}</style><![endif]-->
 </head>
-<body style="margin:0;padding:0;background-color:#F3F4F6;font-family:Inter,Arial,sans-serif;">
-  <!-- Preheader -->
-  <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:#F3F4F6;">
-    ${opts.preheader}
+<body style="margin:0;padding:0;background-color:#EEF2F7;font-family:Inter,Arial,sans-serif;-webkit-text-size-adjust:100%;">
+  <!-- Preheader (hidden) -->
+  <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:#EEF2F7;">
+    ${opts.preheader}&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;
   </div>
-  <!-- Container -->
-  <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#F3F4F6;">
+
+  <!-- Outer wrapper -->
+  <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#EEF2F7;">
     <tr>
-      <td align="center" style="padding:32px 16px;">
-        <table border="0" cellpadding="0" cellspacing="0" width="600" style="max-width:600px;background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
-          <!-- Header -->
+      <td align="center" style="padding:40px 16px 48px;">
+
+        <!-- Email card -->
+        <table border="0" cellpadding="0" cellspacing="0" width="600"
+          style="max-width:600px;width:100%;background-color:#ffffff;border-radius:16px;
+                 overflow:hidden;box-shadow:0 4px 24px rgba(15,39,68,0.12);">
+
+          <!-- ═══ HEADER BAND ═══ -->
           <tr>
-            <td style="background-color:${BRAND_DARK};padding:24px 32px;">
+            <td style="background:linear-gradient(135deg,${BRAND_DARK} 0%,#1A3A6B 60%,#1D4ED8 100%);padding:0;">
               <table border="0" cellpadding="0" cellspacing="0" width="100%">
                 <tr>
-                  <td>
-                    <p style="margin:0;font-family:Inter,Arial,sans-serif;font-size:20px;font-weight:700;color:#ffffff;letter-spacing:-0.3px;">
-                      ⚖️ ${APP_NAME}
+                  <!-- Logo badge -->
+                  <td width="80" style="padding:24px 0 24px 32px;vertical-align:middle;">
+                    <img src="${LOGO_URL}" alt="Talk to My Lawyer" width="64" height="64"
+                      style="display:block;border-radius:50%;border:2px solid rgba(255,255,255,0.25);
+                             background:#0F2744;" />
+                  </td>
+                  <!-- Brand name -->
+                  <td style="padding:24px 32px 24px 16px;vertical-align:middle;">
+                    <p style="margin:0;font-family:Inter,Arial,sans-serif;font-size:18px;
+                               font-weight:800;color:#ffffff;letter-spacing:-0.4px;line-height:1.2;">
+                      Talk to My Lawyer
+                    </p>
+                    <p style="margin:4px 0 0;font-family:Inter,Arial,sans-serif;font-size:12px;
+                               color:rgba(255,255,255,0.65);letter-spacing:0.5px;text-transform:uppercase;">
+                      AI-Powered Legal Letters
                     </p>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
-          <!-- Body -->
+
+          <!-- ═══ ACCENT STRIPE ═══ -->
           <tr>
-            <td style="padding:32px;">
+            <td style="height:4px;background:linear-gradient(90deg,${accent} 0%,#60A5FA 100%);"></td>
+          </tr>
+
+          <!-- ═══ BODY ═══ -->
+          <tr>
+            <td style="padding:36px 40px 28px;">
               <table border="0" cellpadding="0" cellspacing="0" width="100%">
                 <tr>
                   <td>
-                    <h1 style="margin:0 0 16px;font-family:Inter,Arial,sans-serif;font-size:22px;font-weight:700;color:#111827;line-height:1.3;">
+                    <h1 style="margin:0 0 18px;font-family:Inter,Arial,sans-serif;font-size:24px;
+                               font-weight:700;color:#0F2744;line-height:1.25;letter-spacing:-0.4px;">
                       ${opts.title}
                     </h1>
-                    <div style="font-family:Inter,Arial,sans-serif;font-size:15px;color:#374151;line-height:1.6;">
+                    <div style="font-family:Inter,Arial,sans-serif;font-size:15px;color:#374151;line-height:1.7;">
                       ${opts.body}
                     </div>
                   </td>
@@ -92,16 +123,41 @@ function buildEmailHtml(opts: {
               </table>
             </td>
           </tr>
-          <!-- Footer -->
+
+          <!-- ═══ DIVIDER ═══ -->
           <tr>
-            <td style="background-color:#F9FAFB;padding:20px 32px;border-top:1px solid #E5E7EB;">
-              <p style="margin:0;font-family:Inter,Arial,sans-serif;font-size:12px;color:#9CA3AF;line-height:1.5;">
-                ${opts.footerNote ?? `You received this email because you have an account with ${APP_NAME}.`}
-                <br>This is an automated notification — please do not reply to this email.
-              </p>
+            <td style="padding:0 40px;">
+              <hr style="border:none;border-top:1px solid #E5E7EB;margin:0;" />
             </td>
           </tr>
+
+          <!-- ═══ FOOTER ═══ -->
+          <tr>
+            <td style="background-color:#F8FAFC;padding:20px 40px 24px;border-radius:0 0 16px 16px;">
+              <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                  <td style="padding-bottom:10px;">
+                    <img src="${LOGO_URL}" alt="" width="28" height="28"
+                      style="display:inline-block;vertical-align:middle;border-radius:50%;opacity:0.6;" />
+                    <span style="font-family:Inter,Arial,sans-serif;font-size:12px;font-weight:600;
+                                 color:#6B7280;vertical-align:middle;margin-left:6px;">Talk to My Lawyer</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <p style="margin:0;font-family:Inter,Arial,sans-serif;font-size:11px;color:#9CA3AF;line-height:1.6;">
+                      ${opts.footerNote ?? `You received this email because you have an account with ${APP_NAME}.`}
+                      <br>This is an automated notification — please do not reply directly to this email.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
         </table>
+        <!-- End email card -->
+
       </td>
     </tr>
   </table>
@@ -166,6 +222,7 @@ export async function sendLetterApprovedEmail(opts: {
     body,
     ctaText: "View Your Approved Letter",
     ctaUrl,
+    accentColor: "#059669", // green — approval
   });
   await sendEmail({
     to: opts.to,
@@ -201,6 +258,7 @@ export async function sendNeedsChangesEmail(opts: {
     body,
     ctaText: "View Feedback & Update",
     ctaUrl,
+    accentColor: "#D97706", // amber — needs changes
   });
   await sendEmail({
     to: opts.to,
@@ -236,6 +294,7 @@ export async function sendLetterRejectedEmail(opts: {
     body,
     ctaText: "View Details",
     ctaUrl,
+    accentColor: "#DC2626", // red — rejection
   });
   await sendEmail({
     to: opts.to,
@@ -269,11 +328,12 @@ export async function sendNewReviewNeededEmail(opts: {
     <p>Please log in to claim and review this letter at your earliest convenience.</p>
   `;
   const html = buildEmailHtml({
-    preheader: "A new letter is waiting for your review.",
+    preheader: `A new letter is waiting for your review.`,
     title: "New Letter Ready for Review",
     body,
     ctaText: "Review Letter",
     ctaUrl,
+    accentColor: "#7C3AED", // purple — attorney action
   });
   await sendEmail({
     to: opts.to,
@@ -311,6 +371,7 @@ export async function sendJobFailedAlertEmail(opts: {
     body,
     ctaText: "View Failed Jobs",
     ctaUrl,
+    accentColor: "#DC2626", // red — alert
   });
   await sendEmail({
     to: opts.to,
@@ -409,6 +470,7 @@ export async function sendLetterSubmissionEmail(opts: {
     body,
     ctaText: "Track Your Letter",
     ctaUrl,
+    accentColor: "#0284C7", // sky-blue — in progress
   });
   await sendEmail({
     to: opts.to,
@@ -451,6 +513,7 @@ export async function sendLetterReadyEmail(opts: {
     body,
     ctaText: "View & Unlock Your Letter — $29",
     ctaUrl,
+    accentColor: "#059669", // green — ready / positive action
   });
   await sendEmail({
     to: opts.to,
@@ -498,6 +561,7 @@ export async function sendLetterUnlockedEmail(opts: {
     body,
     ctaText: "Track Review Status",
     ctaUrl,
+    accentColor: "#7C3AED", // purple — attorney review stage
   });
   await sendEmail({
     to: opts.to,
@@ -525,10 +589,11 @@ export async function sendVerificationEmail(opts: {
   `;
   const html = buildEmailHtml({
     preheader: "Verify your email address to activate your Talk to My Lawyer account.",
-    title: "Verify Your Email Address",
+    title: "Verify Your Email Address 🔒",
     body,
-    ctaText: "Verify Email Address",
+    ctaText: "Verify My Email Address",
     ctaUrl: opts.verifyUrl,
+    accentColor: "#2563EB", // brand blue — account action
     footerNote: `You received this email because you signed up for ${APP_NAME}. If this wasn't you, please ignore this email.`,
   });
   await sendEmail({
@@ -567,6 +632,7 @@ export async function sendWelcomeEmail(opts: {
     body,
     ctaText: "Go to My Dashboard",
     ctaUrl: opts.dashboardUrl,
+    accentColor: "#059669", // green — success / welcome
   });
   await sendEmail({
     to: opts.to,

@@ -576,3 +576,21 @@
 - [x] Gate ProtectedRoute: unverified non-admin users redirected to /verify-email
 - [x] Admin role bypasses email verification gate (pre-verified)
 - [x] 18 new Vitest tests passing (token generation, DB helpers, gate logic, email sending)
+
+## Phase 45: Email Template Branding
+- [ ] Redesign sendVerificationEmail HTML with TTML logo, navy/blue brand colors, polished layout
+- [ ] Redesign sendWelcomeEmail HTML with matching brand style
+- [ ] Update other transactional emails (submission, letter_ready, approved, rejected, needs_changes) for consistency
+- [ ] Test all templates render correctly
+
+## Phase 45: Email Template Branding
+- [x] Replace ⚖️ emoji header with actual TTML logo badge (CDN URL)
+- [x] Navy-to-blue gradient header band with logo + tagline
+- [x] 4px accent stripe below header (color varies per email type)
+- [x] Polished CTA button with gradient + fallback link
+- [x] Branded footer with small logo + legal disclaimer
+- [x] Per-email accent colors: green (approval), amber (changes), red (rejection/alert), purple (attorney), sky-blue (in-progress)
+- [x] Verification email: blue accent + 🔒 title
+- [x] Welcome email: green accent + 🎉 title
+- [x] All 9 transactional emails updated via shared buildEmailHtml builder
+- [x] 18 email verification tests still passing, 0 TS errors
