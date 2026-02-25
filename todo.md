@@ -719,3 +719,6 @@
   - Phase 38: Updated 8 tests to use attorneyProcedure instead of employeeProcedure as boundary markers
   - Phase 38: Fixed LetterDetail "Download PDF" label to match test expectation
 - [x] All 320/320 tests passing, 0 TypeScript errors
+
+## Phase 54: Fix Letter Submission Database Insert Failure
+- [x] Diagnose and fix letter_requests insert failure (SQL error on submission) — missing `archived_at` column in Supabase DB, applied ALTER TABLE migration
