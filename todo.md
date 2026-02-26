@@ -762,3 +762,10 @@
 - [x] Add username edit and password change sections
 - [x] Update /profile route to allow subscriber, employee, attorney, and admin
 - [x] Add Settings link to sidebar nav for all 4 roles in AppLayout
+
+## Phase 61: Email Change with Re-Verification
+- [x] Add changeEmail tRPC mutation (verify current password, update email in Supabase + app DB, set emailVerified=false)
+- [x] Handle Supabase email confirmation flow (sends verification to new email via token)
+- [x] Update Profile page UI with email change section (current email display, edit mode, password confirmation)
+- [x] Show re-verification banner when emailVerified is false after email change
+- [x] Duplicate email check before allowing change
