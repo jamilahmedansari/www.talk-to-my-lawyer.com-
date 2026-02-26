@@ -125,7 +125,9 @@ export default function Signup() {
       localStorage.removeItem("ttml_onboarding_seen");
 
       // Redirect based on role
-      if (role === "attorney" || role === "employee") {
+      if (role === "attorney") {
+        navigate("/attorney");
+      } else if (role === "employee") {
         navigate("/employee");
       } else {
         navigate("/dashboard");

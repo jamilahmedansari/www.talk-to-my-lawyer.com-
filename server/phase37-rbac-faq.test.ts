@@ -201,9 +201,14 @@ describe("Phase 37: Role-based routing, FAQ, Onboarding, Mobile nav", () => {
       expect(content).toContain('navigate("/admin")');
     });
 
-    it("should redirect employee users to /review", () => {
+    it("should redirect employee users to /employee", () => {
       const content = readFileSync(filePath, "utf-8");
-      expect(content).toContain('navigate("/review")');
+      expect(content).toContain('navigate("/employee")');
+    });
+
+    it("should redirect attorney users to /attorney", () => {
+      const content = readFileSync(filePath, "utf-8");
+      expect(content).toContain('navigate("/attorney")');
     });
 
     it("should redirect subscriber users to /dashboard", () => {

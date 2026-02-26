@@ -72,7 +72,7 @@ export default function Login() {
       // Role-based redirect
       const role = data.user?.role ?? data.session?.user?.user_metadata?.role ?? "subscriber";
       if (role === "admin") navigate("/admin");
-      else if (role === "attorney") navigate("/review");
+      else if (role === "attorney") navigate("/attorney");
       else if (role === "employee") navigate("/employee");
       else navigate("/dashboard");
     } catch (err: any) {

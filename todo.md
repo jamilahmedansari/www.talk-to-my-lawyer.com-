@@ -737,3 +737,11 @@
 - [x] Add role selector (Client / Attorney / Employee) to Signup page
 - [x] Wire selected role to user creation so DB record gets correct role
 - [x] Ensure login redirects correctly for all roles
+
+## Phase 57: Attorney & Employee Login/Access Fix
+- [x] Audit attorney and employee routing in App.tsx
+- [x] Fix login redirect for attorney and employee roles (attorney now goes to /attorney)
+- [x] Ensure ProtectedRoute allows attorney role where needed
+- [x] Verify employee and attorney dashboards are accessible
+- [x] Add attorney to DB user_role enum (was missing, causing signup failures)
+- [x] Fix signup redirect (attorney → /attorney, employee → /employee)
