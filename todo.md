@@ -769,3 +769,9 @@
 - [x] Update Profile page UI with email change section (current email display, edit mode, password confirmation)
 - [x] Show re-verification banner when emailVerified is false after email change
 - [x] Duplicate email check before allowing change
+
+## Phase 62: Homepage SEO Title Fix
+- [x] Set document.title on homepage to 'Talk to My Lawyer — Professional Legal Letters' (46 chars)
+- [x] Remove all AI references from index.html meta tags (title, description, og, twitter)
+- [x] Update meta descriptions to reflect freemium model ('your first letter is free')
+- [x] Remove 'AI legal' from keywords, add 'free legal letter'

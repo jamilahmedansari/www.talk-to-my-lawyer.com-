@@ -40,6 +40,10 @@ export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
+    document.title = "Talk to My Lawyer \u2014 Professional Legal Letters";
+  }, []);
+
+  useEffect(() => {
     if (!loading && isAuthenticated && user) {
       if (user.role === "admin") navigate("/admin");
       else if (user.role === "employee") navigate("/review");
