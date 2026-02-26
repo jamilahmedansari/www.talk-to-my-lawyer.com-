@@ -4,14 +4,39 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Scale, Eye, EyeOff, Loader2, AlertCircle, Check } from "lucide-react";
+import { Eye, EyeOff, Loader2, AlertCircle, Check, User, Briefcase, Scale } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { cn } from "@/lib/utils";
+
+type RoleOption = "subscriber" | "attorney" | "employee";
+
+const ROLE_OPTIONS: { value: RoleOption; label: string; description: string; icon: React.ReactNode }[] = [
+  {
+    value: "subscriber",
+    label: "Client",
+    description: "I need a legal letter drafted",
+    icon: <User className="w-5 h-5" />,
+  },
+  {
+    value: "attorney",
+    label: "Attorney",
+    description: "I review and approve letters",
+    icon: <Scale className="w-5 h-5" />,
+  },
+  {
+    value: "employee",
+    label: "Employee",
+    description: "I work on operations & support",
+    icon: <Briefcase className="w-5 h-5" />,
+  },
+];
 
 export default function Signup() {
   const [, navigate] = useLocation();
   const utils = trpc.useUtils();
 
+  const [role, setRole] = useState<RoleOption>("subscriber");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -44,7 +69,6 @@ export default function Signup() {
     setLoading(true);
 
     try {
-      // Helper to make signup request with timeout
       const doSignup = async (attempt: number) => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000);
@@ -52,17 +76,14 @@ export default function Signup() {
           const resp = await fetch("/api/auth/signup", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, password, name: name || undefined }),
+            body: JSON.stringify({ email, password, name: name || undefined, role }),
             signal: controller.signal,
           });
           clearTimeout(timeoutId);
           return resp;
         } catch (err) {
           clearTimeout(timeoutId);
-          if (attempt < 2) {
-            // Retry once on timeout/network error
-            return doSignup(attempt + 1);
-          }
+          if (attempt < 2) return doSignup(attempt + 1);
           throw err;
         }
       };
@@ -76,7 +97,6 @@ export default function Signup() {
         return;
       }
 
-      // Handle email verification required
       if (data.requiresVerification) {
         setSignedUpEmail(email);
         setVerificationSent(true);
@@ -91,7 +111,6 @@ export default function Signup() {
         return;
       }
 
-      // Store the access token (owner auto-login path)
       if (data.session?.access_token) {
         localStorage.setItem("sb_access_token", data.session.access_token);
         localStorage.setItem("sb_refresh_token", data.session.refresh_token || "");
@@ -104,9 +123,15 @@ export default function Signup() {
       });
 
       localStorage.removeItem("ttml_onboarding_seen");
-      navigate("/dashboard");
+
+      // Redirect based on role
+      if (role === "attorney" || role === "employee") {
+        navigate("/employee");
+      } else {
+        navigate("/dashboard");
+      }
     } catch (err: any) {
-      if (err?.name === 'AbortError') {
+      if (err?.name === "AbortError") {
         setError("Request timed out. Please try again — the server may be warming up.");
       } else {
         setError("An unexpected error occurred. Please try again.");
@@ -116,7 +141,7 @@ export default function Signup() {
     }
   };
 
-  // Show email-sent confirmation screen
+  // Email verification sent screen
   if (verificationSent) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center p-4">
@@ -124,7 +149,7 @@ export default function Signup() {
           <div className="text-center mb-8">
             <Link href="/" className="inline-flex items-center gap-2 mb-4">
               <img
-                src="https://cdn.manus.im/projects/kkQq7ndgQAuTkTV73VVbNP/uploads/logo.png"
+                src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663031738932/OabHhALgbskSzGQq.png"
                 alt="Talk to My Lawyer"
                 className="w-12 h-12 object-contain"
               />
@@ -136,9 +161,7 @@ export default function Signup() {
               <Check className="w-8 h-8 text-green-600" />
             </div>
             <h1 className="text-2xl font-bold text-slate-800 mb-2">Check Your Email</h1>
-            <p className="text-slate-600 mb-2">
-              We sent a verification link to:
-            </p>
+            <p className="text-slate-600 mb-2">We sent a verification link to:</p>
             <p className="font-semibold text-indigo-700 mb-6 break-all">{signedUpEmail}</p>
             <p className="text-slate-500 text-sm mb-6">
               Click the link in the email to activate your account. The link expires in 24 hours.
@@ -153,9 +176,13 @@ export default function Signup() {
                     body: JSON.stringify({ email: signedUpEmail }),
                   });
                   const d = await res.json();
-                  toast.success("Verification email sent", { description: d.message || "Check your inbox for the confirmation link." });
+                  toast.success("Verification email sent", {
+                    description: d.message || "Check your inbox for the confirmation link.",
+                  });
                 } catch {
-                  toast.error("Could not resend email", { description: "Please wait a moment and try again." });
+                  toast.error("Could not resend email", {
+                    description: "Please wait a moment and try again.",
+                  });
                 }
               }}
               className="text-indigo-600 hover:underline text-sm font-medium"
@@ -184,12 +211,10 @@ export default function Signup() {
               alt="Talk to My Lawyer"
               className="w-12 h-12 object-contain"
             />
-            <span className="text-2xl font-bold text-slate-900">
-              Talk to My Lawyer
-            </span>
+            <span className="text-2xl font-bold text-slate-900">Talk to My Lawyer</span>
           </Link>
           <p className="text-slate-500 text-sm">
-            AI-powered legal letters with mandatory attorney review
+            Professional legal letters drafted and reviewed by attorneys
           </p>
         </div>
 
@@ -198,11 +223,11 @@ export default function Signup() {
           <CardHeader className="space-y-1 pb-4">
             <CardTitle className="text-2xl font-semibold text-center">Create Account</CardTitle>
             <CardDescription className="text-center">
-              Get started with your first legal letter
+              Choose your role to get started
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSignup} className="space-y-4">
+            <form onSubmit={handleSignup} className="space-y-5">
               {error && (
                 <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
                   <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -210,6 +235,47 @@ export default function Signup() {
                 </div>
               )}
 
+              {/* Role Selector */}
+              <div className="space-y-2">
+                <Label>I am signing up as</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {ROLE_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setRole(opt.value)}
+                      disabled={loading}
+                      className={cn(
+                        "flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 text-center transition-all duration-150 cursor-pointer",
+                        role === opt.value
+                          ? "border-indigo-600 bg-indigo-50 text-indigo-700"
+                          : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+                      )}
+                    >
+                      <span className={cn(
+                        "p-1.5 rounded-lg",
+                        role === opt.value ? "bg-indigo-100 text-indigo-600" : "bg-slate-100 text-slate-500"
+                      )}>
+                        {opt.icon}
+                      </span>
+                      <span className="text-xs font-semibold leading-tight">{opt.label}</span>
+                      <span className="text-[10px] leading-tight text-slate-400 hidden sm:block">{opt.description}</span>
+                    </button>
+                  ))}
+                </div>
+                {role === "attorney" && (
+                  <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                    Attorney accounts require admin approval before you can access the review center.
+                  </p>
+                )}
+                {role === "employee" && (
+                  <p className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+                    Employee accounts require admin approval before full access is granted.
+                  </p>
+                )}
+              </div>
+
+              {/* Full Name */}
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name <span className="text-slate-400">(optional)</span></Label>
                 <Input
@@ -223,6 +289,7 @@ export default function Signup() {
                 />
               </div>
 
+              {/* Email */}
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -237,6 +304,7 @@ export default function Signup() {
                 />
               </div>
 
+              {/* Password */}
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <div className="relative">
@@ -270,6 +338,7 @@ export default function Signup() {
                 )}
               </div>
 
+              {/* Confirm Password */}
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirm Password</Label>
                 <Input
@@ -303,7 +372,7 @@ export default function Signup() {
                     Creating account...
                   </>
                 ) : (
-                  "Create Account"
+                  `Create ${role === "subscriber" ? "Client" : role === "attorney" ? "Attorney" : "Employee"} Account`
                 )}
               </Button>
             </form>

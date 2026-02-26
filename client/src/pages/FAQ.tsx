@@ -17,7 +17,7 @@ const FAQ_CATEGORIES = [
     items: [
       {
         q: "What is Talk to My Lawyer?",
-        a: "Talk to My Lawyer is an AI-powered legal letter drafting service with mandatory attorney review. You submit your legal matter through a structured intake form, our AI researches applicable laws and drafts a professional letter, and then a licensed attorney reviews, edits, and approves the final document before you receive it.",
+        a: "Talk to My Lawyer is a professional legal letter service with mandatory attorney review. You submit your legal matter through a structured intake form, our attorneys research applicable laws and draft a professional letter, and then a licensed attorney reviews, edits, and approves the final document before you receive it.",
       },
       {
         q: "Is this a substitute for hiring a lawyer?",
@@ -29,7 +29,7 @@ const FAQ_CATEGORIES = [
       },
       {
         q: "Who reviews my letter?",
-        a: "Every letter is reviewed by a licensed attorney before delivery. Attorneys review the AI-generated draft, make any necessary edits, and either approve, reject, or request changes. You only receive a letter that has been explicitly approved by a licensed attorney.",
+        a: "Every letter is reviewed by a licensed attorney before delivery. Attorneys review the draft, make any necessary edits, and either approve, reject, or request changes. You only receive a letter that has been explicitly approved by a licensed attorney.",
       },
     ],
   },
@@ -38,11 +38,11 @@ const FAQ_CATEGORIES = [
     items: [
       {
         q: "How much does a letter cost?",
-        a: "A single attorney-reviewed legal letter costs $200. This covers AI research and drafting, licensed attorney review and editing, and a final approved PDF you can download and use. We also offer subscription plans for users who need multiple letters per month.",
+        a: "A single attorney-reviewed legal letter costs $200. This covers legal research and drafting, licensed attorney review and editing, and a final approved PDF you can download and use. We also offer subscription plans for users who need multiple letters per month.",
       },
       {
         q: "What does the $200 fee include?",
-        a: "The $200 per-letter fee includes: AI-powered legal research using jurisdiction-specific databases, professional letter drafting by our AI pipeline, licensed attorney review and editing, attorney approval and sign-off, and a downloadable PDF of the final approved letter.",
+        a: "The $200 per-letter fee includes: jurisdiction-specific legal research, professional letter drafting by our legal team, licensed attorney review and editing, attorney approval and sign-off, and a downloadable PDF of the final approved letter.",
       },
       {
         q: "Do you offer subscription plans?",
@@ -63,15 +63,15 @@ const FAQ_CATEGORIES = [
     items: [
       {
         q: "How long does it take to receive my letter?",
-        a: "Most letters are delivered within 24–48 hours of payment. The AI drafting stage typically completes within 2–5 minutes. Attorney review is the primary variable — attorneys aim to complete reviews within 24 hours during business days.",
+        a: "Most letters are delivered within 24\u201348 hours of payment. The drafting stage typically completes within 2\u20135 minutes. Attorney review is the primary variable \u2014 attorneys aim to complete reviews within 24 hours during business days.",
       },
       {
         q: "What happens after I submit my request?",
-        a: "After submission: (1) Our AI researches applicable laws and statutes for your jurisdiction, (2) The AI drafts a professional letter based on your intake details and research findings, (3) The draft is queued for attorney review, (4) A licensed attorney reviews, edits if necessary, and approves or requests changes, (5) You receive an email notification and can download the approved PDF.",
+        a: "After submission: (1) Our legal team researches applicable laws and statutes for your jurisdiction, (2) A professional letter is drafted based on your intake details and research findings, (3) The draft is queued for attorney review, (4) A licensed attorney reviews, edits if necessary, and approves or requests changes, (5) You receive an email notification and can download the approved PDF.",
       },
       {
-        q: "Can I see the AI draft before paying?",
-        a: "Yes. After the AI completes drafting, you can preview a partially blurred version of your letter. To unlock the full letter and submit it for attorney review, you pay the $200 fee at that point.",
+        q: "Can I see the draft before paying?",
+        a: "Yes. After drafting is complete, you can preview a partially blurred version of your letter. To unlock the full letter and submit it for attorney review, you pay the $200 fee at that point.",
       },
       {
         q: "What if the attorney requests changes?",
@@ -96,7 +96,7 @@ const FAQ_CATEGORIES = [
       },
       {
         q: "What jurisdictions do you cover?",
-        a: "We currently cover all 50 U.S. states. Our AI research pipeline identifies and applies jurisdiction-specific laws, statutes, and regulations relevant to your letter type and location. International coverage is planned for future releases.",
+        a: "We currently cover all 50 U.S. states. Our legal team identifies and applies jurisdiction-specific laws, statutes, and regulations relevant to your letter type and location. International coverage is planned for future releases.",
       },
       {
         q: "Is my information confidential?",
@@ -113,7 +113,7 @@ const FAQ_CATEGORIES = [
       },
       {
         q: "How do I track my letter's progress?",
-        a: "Your subscriber dashboard shows real-time status updates for all your letters. You can see exactly which pipeline stage your letter is in — from AI research through attorney review to final approval. You also receive email notifications at key milestones.",
+        a: "Your subscriber dashboard shows real-time status updates for all your letters. You can see exactly which stage your letter is in \u2014 from research through attorney review to final approval. You also receive email notifications at key milestones.",
       },
       {
         q: "Can I download my approved letter?",
@@ -170,7 +170,7 @@ export default function FAQ() {
             Everything You Need to Know
           </h1>
           <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-            Find answers to common questions about our AI-powered legal letter service,
+            Find answers to common questions about our professional legal letter service,
             pricing, the attorney review process, and more.
           </p>
         </div>

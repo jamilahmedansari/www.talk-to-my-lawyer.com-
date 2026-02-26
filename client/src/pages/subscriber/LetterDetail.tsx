@@ -13,11 +13,11 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useLetterRealtime } from "@/hooks/useLetterRealtime";
 
-// Statuses that require active polling (AI pipeline in progress or awaiting action)
+// Statuses that require active polling (pipeline in progress or awaiting action)
 const POLLING_STATUSES = ["submitted", "researching", "drafting", "pending_review", "under_review"];
 
 /**
- * First-letter-free view: shows the full AI draft with a "Send for Attorney Review" CTA.
+ * First-letter-free view: shows the full draft with a "Send for Attorney Review" CTA.
  * The subscriber can read the entire letter before deciding to send it for review.
  */
 function GeneratedUnlockedView({ letterId, draftContent }: { letterId: number; draftContent: string }) {
@@ -43,19 +43,19 @@ function GeneratedUnlockedView({ letterId, draftContent }: { letterId: number; d
             <div>
               <p className="text-sm font-semibold text-green-800">Your First Letter Is Free!</p>
               <p className="text-sm text-green-700 mt-1">
-                Read your AI-generated draft below. When you're ready, send it for attorney review at no charge.
+                Read your draft below. When you're ready, send it for attorney review at no charge.
               </p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Full AI draft */}
+      {/* Full draft */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm flex items-center gap-2">
             <FileText className="w-4 h-4 text-primary" />
-            AI-Generated Draft
+            Attorney Draft
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -189,7 +189,7 @@ export default function LetterDetail() {
 
   const updateMutation = trpc.letters.updateForChanges.useMutation({
     onSuccess: () => {
-      toast.success("Response submitted", { description: "The AI pipeline is re-processing your letter with the new information." });
+      toast.success("Response submitted", { description: "Our legal team is re-processing your letter with the new information." });
       setUpdateText("");
     },
     onError: (err) => toast.error("Submission failed", { description: err.message }),
@@ -409,7 +409,7 @@ export default function LetterDetail() {
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-sm text-amber-700">
-                The reviewing attorney has requested changes. Please review the attorney notes above and provide additional context or corrections below. The AI pipeline will re-process your letter with this new information.
+                The reviewing attorney has requested changes. Please review the attorney notes above and provide additional context or corrections below. Our legal team will re-process your letter with this new information.
               </p>
               <Textarea
                 value={updateText}

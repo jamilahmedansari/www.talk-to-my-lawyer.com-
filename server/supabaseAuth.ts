@@ -142,8 +142,11 @@ export function registerSupabaseAuthRoutes(app: Express) {
   // POST /api/auth/signup — Create a new user via Supabase Auth
   app.post("/api/auth/signup", async (req: Request, res: Response) => {
     try {
-      const { email, password, name } = req.body;
-      
+      const { email, password, name, role: requestedRole } = req.body;
+      // Only allow subscriber/attorney/employee on self-signup (admin is never self-assignable)
+      const ALLOWED_SIGNUP_ROLES = ["subscriber", "attorney", "employee"];
+      const signupRole = ALLOWED_SIGNUP_ROLES.includes(requestedRole) ? requestedRole : "subscriber";
+
       if (!email || !password) {
         res.status(400).json({ error: "Email and password are required" });
         return;
@@ -190,7 +193,7 @@ export function registerSupabaseAuthRoutes(app: Express) {
         email,
         loginMethod: "email",
         lastSignedIn: new Date(),
-        ...(isOwner ? { role: "admin", emailVerified: true } : {}),
+        ...(isOwner ? { role: "admin", emailVerified: true } : { role: signupRole as "subscriber" | "attorney" | "employee" }),
       });
 
       // Get the app user record to get the integer id

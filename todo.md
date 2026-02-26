@@ -722,3 +722,18 @@
 
 ## Phase 54: Fix Letter Submission Database Insert Failure
 - [x] Diagnose and fix letter_requests insert failure (SQL error on submission) — missing `archived_at` column in Supabase DB, applied ALTER TABLE migration
+
+## Phase 55: SEO Fix — Homepage Title
+- [ ] Set document.title on homepage (/) to 30-60 characters
+
+## Phase 55: Remove AI References — Attorney-First Rebrand
+- [ ] Audit all frontend files for "AI", "artificial intelligence", "OpenAI", "machine learning" references
+- [ ] Rewrite Home.tsx hero, features, how-it-works, and pricing sections
+- [ ] Update subscriber Dashboard, LetterDetail, SubmitLetter pages
+- [ ] Update shared components, nav, status labels, and email-visible strings
+- [ ] Ensure no AI mention remains in any user-visible page or component
+
+## Phase 56: Role Selector on Signup Page
+- [x] Add role selector (Client / Attorney / Employee) to Signup page
+- [x] Wire selected role to user creation so DB record gets correct role
+- [x] Ensure login redirects correctly for all roles

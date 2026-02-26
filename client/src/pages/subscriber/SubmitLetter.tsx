@@ -270,7 +270,7 @@ export default function SubmitLetter() {
       }
       // Clear saved draft on successful submission
       localStorage.removeItem(DRAFT_KEY);
-      toast.success("Letter submitted", { description: "The AI pipeline is generating your draft. This usually takes 1\u20132 minutes." });
+      toast.success("Letter submitted", { description: "Our legal team is preparing your draft. This usually takes 1\u20132 minutes." });
       setPipelineLetterId(letterId);
       setShowPipeline(true);
     } catch (err: any) {

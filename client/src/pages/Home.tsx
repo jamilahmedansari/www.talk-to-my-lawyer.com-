@@ -171,7 +171,7 @@ export default function Home() {
             Professional{" "}
             <span className="text-blue-600">Legal Letters</span>
             <br />
-            drafted by AI, approved by attorneys
+            drafted and approved by attorneys
           </h1>
 
           {/* Letter type pills */}
@@ -197,7 +197,7 @@ export default function Home() {
           </div>
 
           <p className="text-slate-700 text-lg mb-10 font-medium max-w-2xl mx-auto">
-            Describe your legal situation. Our AI researches applicable laws, drafts a professional letter, and a licensed attorney reviews every word before delivery.{" "}
+            Describe your legal situation. Our attorneys research applicable laws, draft a professional letter, and review every word before delivery.{" "}
             <span className="text-blue-600 font-bold">Try your first letter free.</span>
           </p>
 
@@ -226,7 +226,7 @@ export default function Home() {
               <div className="absolute inset-0 bg-gradient-to-t from-indigo-50/80 to-transparent rounded-3xl" />
               <img
                 src={HERO_IMG}
-                alt="AI-powered legal letter generation with attorney review"
+                alt="Professional legal letter service with licensed attorney review"
                 className="w-full h-auto rounded-3xl shadow-2xl shadow-blue-200/50 border border-white/50"
                 loading="eager"
               />
@@ -272,8 +272,8 @@ export default function Home() {
               {
                 step: "02",
                 icon: Shield,
-                title: "AI Researches & Drafts",
-                desc: "Our AI pipeline researches applicable statutes and case law for your jurisdiction, then generates a tailored legal letter grounded in real legal authority.",
+                title: "Attorneys Research & Draft",
+                desc: "Our legal team researches applicable statutes and case law for your jurisdiction, then drafts a tailored legal letter grounded in real legal authority.",
               },
               {
                 step: "03",
@@ -337,7 +337,7 @@ export default function Home() {
                 Jurisdiction-Aware Research
               </h3>
               <p className="text-sm text-slate-600">
-                Our AI identifies statutes, regulations, and case law specific to your state and situation — cited directly in your letter.
+                Our attorneys identify statutes, regulations, and case law specific to your state and situation — cited directly in your letter.
               </p>
             </div>
 
@@ -349,7 +349,7 @@ export default function Home() {
                 Real-Time Status Tracking
               </h3>
               <p className="text-sm text-slate-600">
-                Follow your letter from submission through AI drafting, attorney review, and final approval with live status updates and email notifications.
+                Follow your letter from submission through attorney drafting, review, and final approval with live status updates and email notifications.
               </p>
             </div>
 
@@ -361,7 +361,7 @@ export default function Home() {
                 Attorney Review Center
               </h3>
               <p className="text-sm text-slate-600">
-                Licensed attorneys review every AI draft in a dedicated workspace — editing language, verifying citations, and ensuring professional quality.
+                Licensed attorneys work in a dedicated Review Center — editing language, verifying citations, and ensuring professional quality.
               </p>
             </div>
 
@@ -373,7 +373,7 @@ export default function Home() {
                 Full Audit Trail
               </h3>
               <p className="text-sm text-slate-600">
-                Every action is logged — from intake to AI generation to attorney edits and final approval. Complete transparency at every step.
+                Every action is logged — from intake to attorney drafting, edits, and final approval. Complete transparency at every step.
               </p>
             </div>
 
@@ -416,7 +416,7 @@ export default function Home() {
                 plan: "Pay Per Letter",
                 price: "$200",
                 period: "one-time",
-                features: ["Single attorney-reviewed letter", "AI legal research included", "Downloadable PDF", "Full audit trail"],
+                features: ["Single attorney-reviewed letter", "Legal research included", "Downloadable PDF", "Full audit trail"],
                 sub: "Best for a one-time legal need",
                 highlight: false,
               },
@@ -526,11 +526,11 @@ export default function Home() {
             {[
               {
                 q: "What is Talk to My Lawyer?",
-                a: "Talk to My Lawyer is a legal letter service that combines AI drafting with mandatory attorney review. You describe your legal situation through a guided intake form, our AI researches applicable laws for your jurisdiction and generates a professional letter, and then a licensed attorney reviews, edits, and approves the final document before you receive it.",
+                a: "Talk to My Lawyer is a professional legal letter service with mandatory attorney review. You describe your legal situation through a guided intake form, our attorneys research applicable laws for your jurisdiction and draft a professional letter, and then a licensed attorney reviews, edits, and approves the final document before you receive it.",
               },
               {
                 q: "Is my first letter really free?",
-                a: "Yes. Your first letter is generated and submitted for attorney review at no cost. You can read the full AI draft, and once the attorney approves it, you can download the final PDF. No credit card is required for your first letter.",
+                a: "Yes. Your first letter is drafted and submitted for attorney review at no cost. You can read the full draft, and once the attorney approves it, you can download the final PDF. No credit card is required for your first letter.",
               },
               {
                 q: "How much does it cost after the first letter?",
@@ -538,7 +538,7 @@ export default function Home() {
               },
               {
                 q: "How long does it take to receive my letter?",
-                a: "The AI research and drafting stage typically completes within 2\u20135 minutes. Attorney review is the primary variable \u2014 most reviews are completed within 24\u201348 hours during business days. You receive email notifications at each stage so you always know where your letter stands.",
+                a: "The research and drafting stage typically completes within 2\u20135 minutes. Attorney review is the primary variable \u2014 most reviews are completed within 24\u201348 hours during business days. You receive email notifications at each stage so you always know where your letter stands.",
               },
               {
                 q: "Are these letters legally valid?",
@@ -550,11 +550,11 @@ export default function Home() {
               },
               {
                 q: "Who reviews my letter?",
-                a: "Every letter is reviewed by a licensed attorney in our Review Center. Attorneys read the AI-generated draft, verify legal citations, make edits where needed, and either approve the letter, reject it, or request additional information from you. No letter is delivered without explicit attorney sign-off.",
+                a: "Every letter is reviewed by a licensed attorney in our Review Center. Attorneys read the draft, verify legal citations, make edits where needed, and either approve the letter, reject it, or request additional information from you. No letter is delivered without explicit attorney sign-off.",
               },
               {
-                q: "Can I see the AI draft before it goes to an attorney?",
-                a: "Yes. For your first free letter, you see the full AI draft and can send it for attorney review at no cost. For subsequent letters without a subscription, you see a blurred preview and can either pay $200 to unlock it or subscribe to a monthly or annual plan.",
+                q: "Can I see the draft before the attorney finalizes it?",
+                a: "Yes. For your first free letter, you see the full draft and can send it for attorney review at no cost. For subsequent letters without a subscription, you see a blurred preview and can either pay $200 to unlock it or subscribe to a monthly or annual plan.",
               },
               {
                 q: "Is my information confidential?",
@@ -646,7 +646,7 @@ export default function Home() {
                 Every letter reviewed by a licensed attorney
               </h2>
               <p className="text-slate-600 leading-relaxed mb-6">
-                AI generates the first draft, but a real attorney has the final word. Our Review Center gives attorneys a dedicated workspace to read your draft, verify legal citations, edit language for precision, and approve or request changes — ensuring every letter meets professional standards.
+                Our attorneys draft every letter, and a licensed reviewer has the final word. Our Review Center gives attorneys a dedicated workspace to read your draft, verify legal citations, edit language for precision, and approve or request changes — ensuring every letter meets professional standards.
               </p>
               <div className="space-y-3">
                 {[

@@ -102,7 +102,7 @@ export default function Login() {
             </span>
           </Link>
           <p className="text-slate-500 text-sm">
-            AI-powered legal letters with mandatory attorney review
+            Professional legal letters drafted and reviewed by attorneys
           </p>
         </div>
 

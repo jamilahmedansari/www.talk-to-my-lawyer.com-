@@ -17,7 +17,7 @@ const PLANS = [
     badge: null,
     features: [
       "1 professional legal letter",
-      "AI-powered legal research",
+      "Attorney legal research included",
       "Attorney review & approval",
       "Final approved letter",
       "Email delivery",
@@ -35,7 +35,7 @@ const PLANS = [
     features: [
       "Unlimited legal letters",
       "Priority attorney review",
-      "AI-powered legal research",
+      "Attorney legal research included",
       "All letter types supported",
       "Email delivery",
       "Cancel anytime",
@@ -53,7 +53,7 @@ const PLANS = [
     features: [
       "50 legal letters per year",
       "Priority attorney review",
-      "AI-powered legal research",
+      "Attorney legal research included",
       "All letter types supported",
       "Email delivery",
       "Dedicated support",
@@ -96,7 +96,7 @@ export default function Pricing() {
           </div>
           <h1 className="text-4xl font-bold mb-4">Professional Legal Letters</h1>
           <p className="text-xl text-slate-300 max-w-2xl mx-auto">
-            Get attorney-reviewed legal letters powered by AI research. Choose the plan that fits your needs.
+            Get professional legal letters drafted and reviewed by licensed attorneys. Choose the plan that fits your needs.
           </p>
         </div>
       </div>
@@ -163,8 +163,8 @@ export default function Pricing() {
           </div>
           <div className="flex flex-col items-center gap-2">
             <Zap className="w-8 h-8 text-amber-500" />
-            <h3 className="font-semibold">AI-Powered Research</h3>
-            <p className="text-sm text-muted-foreground">Perplexity AI researches jurisdiction-specific laws and statutes</p>
+            <h3 className="font-semibold">Attorney-Led Research</h3>
+            <p className="text-sm text-muted-foreground">Our legal team researches jurisdiction-specific laws and statutes for your case</p>
           </div>
           <div className="flex flex-col items-center gap-2">
             <Scale className="w-8 h-8 text-green-500" />

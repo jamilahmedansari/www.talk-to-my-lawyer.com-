@@ -374,7 +374,7 @@ export default function SubscriberDashboard() {
                 <FileText className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
                 <h3 className="text-base font-medium text-foreground mb-2">No letters yet</h3>
                 <p className="text-sm text-muted-foreground mb-6">
-                  Submit your first legal matter and our AI will research and draft a professional
+                  Submit your first legal matter and our attorneys will research and draft a professional
                   letter for attorney review.
                 </p>
                 <Button asChild>
@@ -476,15 +476,15 @@ export default function SubscriberDashboard() {
               {[
                 {
                   status: "submitted",
-                  desc: "Your request has been received and queued for AI processing.",
+                  desc: "Your request has been received and is being prepared for our legal team.",
                 },
                 {
                   status: "researching",
-                  desc: "AI is researching applicable laws, statutes, and jurisdiction rules.",
+                  desc: "Our team is researching applicable laws, statutes, and jurisdiction rules.",
                 },
                 {
                   status: "drafting",
-                  desc: "AI is drafting your professional legal letter using research findings.",
+                  desc: "Our attorneys are drafting your professional legal letter using research findings.",
                 },
                 {
                   status: "generated_locked",
