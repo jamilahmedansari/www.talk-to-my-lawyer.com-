@@ -8,6 +8,13 @@
  *   - draftOutput:    Structured DraftOutput JSON from Stage 2
  *   - assembledLetter: Final polished letter text from Stage 3
  *
+ * STATUS FLOW (must match pipeline.ts exactly):
+ *   submitted → researching → drafting → generated_locked
+ *
+ * The n8n webhook trigger in pipeline.ts sets the letter to "researching".
+ * This callback must transition through "drafting" before landing at
+ * "generated_locked" to keep both pipelines in sync.
+ *
  * If the n8n workflow already ran all 3 stages successfully, we skip the
  * local assembly stage and store the results directly. If the n8n workflow
  * only produced a flat draftContent (legacy format), we fall back to running
@@ -41,6 +48,11 @@ interface N8nCallbackPayload {
   provider?: string;
   stages?: string[];
   error?: string;
+}
+
+/** App base URL — canonical production domain */
+function getAppBaseUrl(): string {
+  return process.env.APP_BASE_URL ?? "https://www.talk-to-my-lawyer.com";
 }
 
 export function registerN8nCallbackRoute(app: Express): void {
@@ -103,6 +115,23 @@ export function registerN8nCallbackRoute(app: Express): void {
         });
         return;
       }
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // STATUS SYNC: Transition through "drafting" before "generated_locked"
+      //
+      // pipeline.ts sets "researching" when it fires the n8n webhook.
+      // Now we must go through "drafting" to match the direct pipeline flow:
+      //   researching → drafting → generated_locked
+      // ═══════════════════════════════════════════════════════════════════════
+      await updateLetterStatus(letterId, "drafting");
+      await logReviewAction({
+        letterRequestId: letterId,
+        actorType: "system",
+        action: "status_transition",
+        noteText: `n8n research complete (${providerTag}). Transitioning to drafting stage.`,
+        fromStatus: "researching",
+        toStatus: "drafting",
+      });
 
       // ── Store the AI draft version ──────────────────────────────
       const draftVersion = await createLetterVersion({
@@ -213,6 +242,7 @@ export function registerN8nCallbackRoute(app: Express): void {
             };
 
             // Stage 3: Claude polishes the n8n draft
+            // NOTE: runAssemblyStage handles its own status transition to generated_locked
             await runAssemblyStage(letterId, intake, research, draft);
             console.log(`[n8n Callback] Local assembly complete for letter #${letterId}`);
           } catch (assemblyErr) {
@@ -249,9 +279,7 @@ export function registerN8nCallbackRoute(app: Express): void {
         const letterRecord = await getLetterRequestById(letterId);
         if (letterRecord) {
           const subscriber = await getUserById(letterRecord.userId);
-          const appBaseUrl = process.env.VITE_APP_ID
-            ? `https://${process.env.VITE_APP_ID}.manus.space`
-            : "https://talk-to-my-lawyer.manus.space";
+          const appBaseUrl = getAppBaseUrl();
           if (subscriber?.email) {
             await sendLetterReadyEmail({
               to: subscriber.email,

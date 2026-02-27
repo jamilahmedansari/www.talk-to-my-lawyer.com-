@@ -460,9 +460,7 @@ export async function runAssemblyStage(
       const record = letterRecord;
       if (!record) return;
       getUserById(record.userId).then(async (subscriber) => {
-        const appBaseUrl = process.env.VITE_APP_ID
-          ? `https://${process.env.VITE_APP_ID}.manus.space`
-          : "https://talk-to-my-lawyer.manus.space";
+        const appBaseUrl = process.env.APP_BASE_URL ?? "https://www.talk-to-my-lawyer.com";
         if (subscriber?.email) {
           await sendLetterReadyEmail({
             to: subscriber.email,

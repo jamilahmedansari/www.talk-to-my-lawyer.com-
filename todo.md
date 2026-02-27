@@ -913,3 +913,17 @@
 - [x] Same system/user prompts as pipeline.ts (research, drafting, assembly)
 - [x] Tests: 21/21 passing in phase73-n8n-alignment.test.ts, 0 TypeScript errors
 - [x] Save checkpoint
+
+## Phase 74: Pipeline Status Sync + Cron Scheduler
+
+- [x] Audited both pipelines: direct API (pipeline.ts) and n8n callback (n8nCallback.ts) for status gaps
+- [x] Found gap: n8n callback jumped from researching → generated_locked without setting "drafting"
+- [x] Fixed n8n callback: now transitions researching → drafting → generated_locked (matches direct pipeline)
+- [x] Fixed audit log fromStatus/toStatus values to be accurate in n8n callback
+- [x] Fixed email URL: both pipelines now use canonical production domain (talk-to-my-lawyer.com)
+- [x] Created cronScheduler.ts: in-process node-cron scheduler, runs draft reminders every hour at :00
+- [x] Wired cronScheduler into server startup (server/_core/index.ts)
+- [x] Set CRON_SECRET via webdev_request_secrets
+- [x] Installed node-cron + @types/node-cron
+- [x] Tests: 10/10 passing in phase74-pipeline-sync.test.ts, 477/477 total, 0 TypeScript errors
+- [x] Save checkpoint

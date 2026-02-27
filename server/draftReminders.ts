@@ -27,9 +27,8 @@ export const REMINDER_THRESHOLD_HOURS = 48;
 
 /** App base URL (falls back to production domain) */
 function getAppBaseUrl(): string {
-  return process.env.VITE_APP_ID
-    ? `https://${process.env.VITE_APP_ID}.manus.space`
-    : "https://talk-to-my-lawyer.manus.space";
+  // Use the canonical production domain if set, otherwise fall back to the known domain
+  return process.env.APP_BASE_URL ?? "https://www.talk-to-my-lawyer.com";
 }
 
 // ─── Core Logic ───────────────────────────────────────────────────────────────

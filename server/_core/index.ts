@@ -9,6 +9,7 @@ import { registerChatRoutes } from "./chat";
 import { registerN8nCallbackRoute } from "../n8nCallback";
 import { registerEmailPreviewRoute } from "../emailPreview";
 import { registerDraftRemindersRoute } from "../draftReminders";
+import { startCronScheduler } from "../cronScheduler";
 import { stripeWebhookHandler } from "../stripeWebhook";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
@@ -94,6 +95,8 @@ async function startServer() {
     console.log(`Server running on http://localhost:${port}/`);
     // Warm up DB connection on startup so first request doesn't timeout
     getDb().then(() => console.log('[Startup] Database connection warmed up')).catch(() => {});
+    // Start in-process cron scheduler (draft reminders, etc.)
+    startCronScheduler();
   });
 }
 
