@@ -959,3 +959,12 @@
 - [x] Updated phase67-pricing.test.ts to match new plan IDs and prices
 - [x] Updated phase26.test.ts to use monthly_basic/monthly_pro plan IDs
 - [x] All 484 tests passing, 0 TypeScript errors
+
+## Phase 77: Upgrade Subscription Banner on Dashboard
+
+- [ ] Audit Dashboard.tsx subscription display and Billing.tsx plan detection
+- [ ] Build UpgradeBanner component: shown only to Monthly Basic subscribers, highlights Monthly Pro benefits
+- [ ] Wire upgrade CTA to createCheckout mutation with planId=monthly_pro
+- [ ] Add dismissible state (session-level) so banner doesn't block the dashboard
+- [ ] Ensure banner is mobile-responsive
+- [ ] Run tests and save checkpoint
