@@ -177,14 +177,18 @@ export function registerSupabaseAuthRoutes(app: Express) {
         return;
       }
 
-      const admin = getAdminClient();
-      
-      // Create user in Supabase Auth
-      const { data, error } = await admin.auth.admin.createUser({
+      // Use anon client signUp so Supabase sends the confirmation email via our Resend SMTP relay
+      const anonSignupClient = createClient(supabaseUrl, supabaseAnonKey, {
+        auth: { autoRefreshToken: false, persistSession: false },
+      });
+      const origin = getOriginUrl(req);
+      const { data, error } = await anonSignupClient.auth.signUp({
         email,
         password,
-        email_confirm: true, // Auto-confirm for now (no email verification)
-        user_metadata: { name: name || email.split("@")[0] },
+        options: {
+          emailRedirectTo: `${origin}/verify-email`,
+          data: { name: name || email.split("@")[0] },
+        },
       });
 
       if (error) {
@@ -219,20 +223,11 @@ export function registerSupabaseAuthRoutes(app: Express) {
       // Get the app user record to get the integer id
       const appUser = await db.getUserByOpenId(data.user.id);
 
-      // Send verification email (unless owner who is auto-verified)
+      // Supabase now sends the confirmation email via our Resend SMTP relay (smtp.resend.com).
+      // The emailRedirectTo in signUp() above points to /verify-email on the correct domain.
+      // No need to send a separate custom verification email here.
       if (appUser && !isOwner) {
-        const verificationToken = crypto.randomBytes(48).toString("hex");
-        await db.deleteUserVerificationTokens(appUser.id); // clear any old tokens
-        await db.createEmailVerificationToken(appUser.id, email, verificationToken);
-        const origin = getOriginUrl(req);
-        const verifyUrl = `${origin}/verify-email?token=${verificationToken}`;
-        try {
-          await sendVerificationEmail({ to: email, name: userName, verifyUrl });
-          console.log(`[SupabaseAuth] Verification email sent to ${email}`);
-        } catch (emailErr) {
-          console.error("[SupabaseAuth] Failed to send verification email:", emailErr);
-          // Don't block signup if email fails
-        }
+        console.log(`[SupabaseAuth] Confirmation email dispatched by Supabase/Resend to ${email}`);
       }
 
       // Auto-generate discount code for employees
