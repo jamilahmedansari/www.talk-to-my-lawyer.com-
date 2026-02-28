@@ -714,6 +714,37 @@ export async function getEmployeeEarningsSummary(employeeId: number) {
   return { totalEarned, pending, paid, referralCount };
 }
 
+/** Batch version: returns earnings summary for ALL employees in a single query.
+ *  Used by adminEmployeePerformance to avoid N+1 queries. */
+export async function getAllEmployeeEarnings(): Promise<
+  Array<{ employeeId: number; totalEarned: number; pending: number; paid: number; referralCount: number }>
+> {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db.select({
+    employeeId: commissionLedger.employeeId,
+    status: commissionLedger.status,
+    amount: commissionLedger.commissionAmount,
+  }).from(commissionLedger);
+
+  // Aggregate in memory, grouped by employeeId
+  const map = new Map<number, { totalEarned: number; pending: number; paid: number; referralCount: number }>();
+  for (const row of rows) {
+    if (row.status === "voided") continue;
+    let entry = map.get(row.employeeId);
+    if (!entry) {
+      entry = { totalEarned: 0, pending: 0, paid: 0, referralCount: 0 };
+      map.set(row.employeeId, entry);
+    }
+    entry.totalEarned += row.amount;
+    if (row.status === "pending") entry.pending += row.amount;
+    if (row.status === "paid") entry.paid += row.amount;
+    entry.referralCount += 1;
+  }
+
+  return Array.from(map.entries()).map(([employeeId, data]) => ({ employeeId, ...data }));
+}
+
 export async function getAllCommissions() {
   const db = await getDb();
   if (!db) return [];

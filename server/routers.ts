@@ -56,6 +56,7 @@ import {
   getAllPayoutRequests,
   processPayoutRequest,
   getPayoutRequestById,
+  getAllEmployeeEarnings,
 } from "./db";
 import {
   sendJobFailedAlertEmail,
@@ -1077,27 +1078,34 @@ export const appRouter = router({
       }),
 
     adminEmployeePerformance: adminProcedure.query(async () => {
-      const employees = await getEmployees();
-      const performance = await Promise.all(
-        employees.map(async (emp) => {
-          const earnings = await getEmployeeEarningsSummary(emp.id);
-          const code = await getDiscountCodeByEmployeeId(emp.id);
-          return {
-            employeeId: emp.id,
-            name: emp.name,
-            email: emp.email,
-            role: emp.role,
-            discountCode: code?.code ?? null,
-            codeActive: code?.isActive ?? false,
-            usageCount: code?.usageCount ?? 0,
-            totalEarned: earnings.totalEarned,
-            pending: earnings.pending,
-            paid: earnings.paid,
-            referralCount: earnings.referralCount,
-          };
-        })
-      );
-      return performance;
+      // Batched: 3 queries total instead of 2N+1 (N+1 fix)
+      const [employees, allCodes, allEarnings] = await Promise.all([
+        getEmployees(),
+        getAllDiscountCodes(),
+        getAllEmployeeEarnings(),
+      ]);
+
+      // Build lookup maps for O(1) access
+      const codesByEmployee = new Map(allCodes.map(c => [c.employeeId, c]));
+      const earningsByEmployee = new Map(allEarnings.map(e => [e.employeeId, e]));
+
+      return employees.map((emp) => {
+        const code = codesByEmployee.get(emp.id);
+        const earnings = earningsByEmployee.get(emp.id);
+        return {
+          employeeId: emp.id,
+          name: emp.name,
+          email: emp.email,
+          role: emp.role,
+          discountCode: code?.code ?? null,
+          codeActive: code?.isActive ?? false,
+          usageCount: code?.usageCount ?? 0,
+          totalEarned: earnings?.totalEarned ?? 0,
+          pending: earnings?.pending ?? 0,
+          paid: earnings?.paid ?? 0,
+          referralCount: earnings?.referralCount ?? 0,
+        };
+      });
     }),
   }),
   // ─── Profile ──────────────────────────────────────────────────────────────

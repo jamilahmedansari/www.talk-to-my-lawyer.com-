@@ -87,6 +87,9 @@ vi.mock("./db", async () => {
     createPayoutRequest: vi.fn().mockResolvedValue({ insertId: 2 }),
     getAllDiscountCodes: vi.fn().mockImplementation(async () => [getMockDiscountCode()]),
     getAllCommissions: vi.fn().mockImplementation(async () => getMockCommissions()),
+    getAllEmployeeEarnings: vi.fn().mockImplementation(async () => [
+      { employeeId: 10, ...getMockEarnings() },
+    ]),
     getAllPayoutRequests: vi.fn().mockImplementation(async () => getMockPayoutRequests()),
     getPayoutRequestById: vi.fn().mockImplementation(async () => getMockPayoutRequests()[0]),
     processPayoutRequest: vi.fn().mockResolvedValue(undefined),

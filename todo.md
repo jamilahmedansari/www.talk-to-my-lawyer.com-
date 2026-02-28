@@ -968,3 +968,10 @@
 - [ ] Add dismissible state (session-level) so banner doesn't block the dashboard
 - [ ] Ensure banner is mobile-responsive
 - [ ] Run tests and save checkpoint
+
+## Phase 78: Security & Performance Fixes (from PR #6 Code Review)
+
+- [x] Fix XSS vulnerability in plainTextToHtml — add DOMPurify sanitization
+- [x] Fix N+1 query in adminEmployeePerformance — batch into 3 queries
+- [x] Write tests for both fixes
+- [x] Save checkpoint and push to GitHub
