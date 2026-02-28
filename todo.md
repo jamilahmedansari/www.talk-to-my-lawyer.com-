@@ -1108,3 +1108,14 @@
 - [x] Verify build output shows 41 chunks (was 1), largest 357 kB (was 2,138 kB)
 - [x] Run full test suite — 29 files, 573 tests, 0 failures
 - [x] Measure improvement: initial bundle 357 kB (83% reduction from 2,138 kB baseline)
+
+## Phase 84 — Sentry Error Monitoring Integration
+- [x] Install @sentry/react 10.40.0 and @sentry/node 10.40.0
+- [x] Request SENTRY_DSN, VITE_SENTRY_DSN, SENTRY_AUTH_TOKEN, SENTRY_ORG, SENTRY_PROJECT secrets set
+- [x] Configure client-side Sentry init (React error boundary, performance tracing, session replay)
+- [x] Configure server-side Sentry init (Express request handler, tRPC error handler, setupExpressErrorHandler)
+- [x] Add custom Sentry context: user role (context.ts), pipeline stage tags, Stripe webhook event type tags
+- [x] Instrument ErrorBoundary component with Sentry.captureException + componentDidCatch
+- [x] Add Sentry breadcrumbs to critical paths (pipeline 4 catch blocks, webhook 3 catch blocks, tRPC context user)
+- [x] Verify build passes with Sentry integration (0 errors, 41 chunks)
+- [x] Run full test suite — 30 files, 617 tests (44 new Sentry tests), 0 failures

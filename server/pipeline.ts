@@ -28,6 +28,7 @@ import { buildNormalizedPromptInput, type NormalizedPromptInput } from "./intake
 import { sendLetterReadyEmail } from "./email";
 import { getUserById, getLetterRequestById as getLetterById } from "./db";
 import { hasActiveRecurringSubscription } from "./stripe";
+import { captureServerException, addServerBreadcrumb } from "./sentry";
 
 // ═══════════════════════════════════════════════════════
 // MODEL PROVIDERS
@@ -290,6 +291,10 @@ export async function runResearchStage(letterId: number, intake: IntakeJson): Pr
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`[Pipeline] Stage 1 failed for letter #${letterId}:`, msg);
+    captureServerException(err, {
+      tags: { pipeline_stage: "research", letter_id: String(letterId) },
+      extra: { researchRunId: runId, jobId, errorMessage: msg },
+    });
     await updateResearchRun(runId, { status: "failed", errorMessage: msg });
     await updateWorkflowJob(jobId, { status: "failed", errorMessage: msg, completedAt: new Date() });
     throw err;
@@ -373,13 +378,16 @@ export async function runDraftingStage(letterId: number, intake: IntakeJson, res
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`[Pipeline] Stage 2 failed for letter #${letterId}:`, msg);
+    captureServerException(err, {
+      tags: { pipeline_stage: "drafting", letter_id: String(letterId) },
+      extra: { jobId, errorMessage: msg },
+    });
     await updateWorkflowJob(jobId, { status: "failed", errorMessage: msg, completedAt: new Date() });
     throw err;
   }
 }
-
 // ═══════════════════════════════════════════════════════
-// STAGE 3: CLAUDE FINAL LETTER ASSEMBLY
+// STAGE 3: CLAUDE FINAL LETTER ASSEMBLYY
 // ═══════════════════════════════════════════════════════
 
 export async function runAssemblyStage(
@@ -477,14 +485,17 @@ export async function runAssemblyStage(
     })();
     console.log(`[Pipeline] Stage 3 complete for letter #${letterId} — status: ${finalStatus} (awaiting payment/review)`);
     return finalLetter;
-  } catch (err) {
+   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`[Pipeline] Stage 3 failed for letter #${letterId}:`, msg);
+    captureServerException(err, {
+      tags: { pipeline_stage: "assembly", letter_id: String(letterId) },
+      extra: { jobId, errorMessage: msg },
+    });
     await updateWorkflowJob(jobId, { status: "failed", errorMessage: msg, completedAt: new Date() });
     throw err;
   }
 }
-
 // ═══════════════════════════════════════════════════════
 // FULL PIPELINE ORCHESTRATOR
 // ═══════════════════════════════════════════════════════
@@ -615,6 +626,10 @@ export async function runFullPipeline(letterId: number, intake: IntakeJson, dbFi
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`[Pipeline] Full pipeline failed for letter #${letterId}:`, msg);
+    captureServerException(err, {
+      tags: { pipeline_stage: "full_pipeline", letter_id: String(letterId) },
+      extra: { pipelineJobId, errorMessage: msg },
+    });
     await updateWorkflowJob(pipelineJobId, { status: "failed", errorMessage: msg, completedAt: new Date() });
     await updateLetterStatus(letterId, "submitted"); // revert to allow retry
     throw err;

@@ -16,6 +16,7 @@ import {
 import { sendLetterApprovedEmail, sendLetterUnlockedEmail, sendEmployeeCommissionEmail } from "./email";
 import { users } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
+import { captureServerException, addServerBreadcrumb } from "./sentry";
 
 async function getUserIdFromStripeCustomer(customerId: string): Promise<number | null> {
   const stripe = getStripe();
@@ -49,6 +50,9 @@ export async function stripeWebhookHandler(req: Request, res: Response): Promise
     );
   } catch (err: any) {
     console.error("[StripeWebhook] Signature verification failed:", err.message);
+    captureServerException(err, {
+      tags: { component: "stripe_webhook", error_type: "signature_verification" },
+    });
     res.status(400).json({ error: `Webhook signature verification failed: ${err.message}` });
     return;
   }
@@ -365,6 +369,10 @@ export async function stripeWebhookHandler(req: Request, res: Response): Promise
     res.json({ received: true });
   } catch (err: any) {
     console.error("[StripeWebhook] Error processing event:", err);
+    captureServerException(err, {
+      tags: { component: "stripe_webhook", event_type: event.type },
+      extra: { eventId: event.id, eventType: event.type },
+    });
     res.status(500).json({ error: "Webhook processing failed" });
   }
 }

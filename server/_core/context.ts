@@ -1,6 +1,7 @@
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
 import type { User } from "../../drizzle/schema";
 import { authenticateRequest } from "../supabaseAuth";
+import { setServerUser } from "../sentry";
 
 export type TrpcContext = {
   req: CreateExpressContextOptions["req"];
@@ -18,6 +19,15 @@ export async function createContext(
   } catch (error) {
     // Authentication is optional for public procedures.
     user = null;
+  }
+
+  // Set Sentry user context for this request scope
+  if (user) {
+    setServerUser({
+      id: String(user.id),
+      email: user.email ?? undefined,
+      role: user.role ?? undefined,
+    });
   }
 
   return {

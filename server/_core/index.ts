@@ -1,4 +1,8 @@
 import "dotenv/config";
+// Sentry must be initialized before other imports
+import { initServerSentry, Sentry } from "../sentry";
+initServerSentry();
+
 import express from "express";
 import { createServer } from "http";
 import net from "net";
@@ -77,6 +81,9 @@ async function startServer() {
       createContext,
     })
   );
+  // ─── Sentry Express error handler (must be before other error handlers) ───
+  Sentry.setupExpressErrorHandler(app);
+
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);

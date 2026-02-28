@@ -1,3 +1,4 @@
+import { setSentryUser, clearSentryUser } from "@/lib/sentry";
 import { trpc } from "@/lib/trpc";
 import { TRPCClientError } from "@trpc/client";
 import { useCallback, useEffect, useMemo } from "react";
@@ -59,6 +60,19 @@ export function useAuth(options?: UseAuthOptions) {
     logoutMutation.error,
     logoutMutation.isPending,
   ]);
+
+  // ─── Sync Sentry user context ───
+  useEffect(() => {
+    if (state.user) {
+      setSentryUser({
+        id: String(state.user.id),
+        email: state.user.email ?? undefined,
+        role: state.user.role ?? undefined,
+      });
+    } else if (!meQuery.isLoading) {
+      clearSentryUser();
+    }
+  }, [state.user, meQuery.isLoading]);
 
   useEffect(() => {
     if (!redirectOnUnauthenticated) return;
