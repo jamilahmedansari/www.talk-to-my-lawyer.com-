@@ -116,6 +116,10 @@ export async function getEmployees() {
 // LETTER REQUEST HELPERS
 // ═══════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════
+// LETTER REQUEST HELPERS
+// ═══════════════════════════════════════════════════════
+
 export async function createLetterRequest(data: {
   userId: number;
   letterType: string;
@@ -284,6 +288,8 @@ export async function countCompletedLetters(userId: number, excludeLetterId?: nu
 // LETTER VERSION HELPERS
 // ═══════════════════════════════════════════════════════
 
+// ─── Letter Versions ────────────────────────────────────
+
 export async function createLetterVersion(data: {
   letterRequestId: number;
   versionType: "ai_draft" | "attorney_edit" | "final_approved";
@@ -331,6 +337,8 @@ export async function getLetterVersionById(id: number) {
 // REVIEW ACTION HELPERS (AUDIT TRAIL)
 // ═══════════════════════════════════════════════════════
 
+// ─── Review Actions ─────────────────────────────────────
+
 export async function logReviewAction(data: {
   letterRequestId: number;
   reviewerId?: number;
@@ -369,6 +377,10 @@ export async function getReviewActions(letterRequestId: number, includeInternal 
 
 // ═══════════════════════════════════════════════════════
 // WORKFLOW JOB HELPERS
+// ═══════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════
+// PIPELINE: WORKFLOW JOBS
 // ═══════════════════════════════════════════════════════
 
 export async function createWorkflowJob(data: {
@@ -439,6 +451,8 @@ export async function purgeFailedJobs(): Promise<{ deletedCount: number }> {
 // RESEARCH RUN HELPERS
 // ═══════════════════════════════════════════════════════
 
+// ─── Pipeline: Research Runs ─────────────────────────────
+
 export async function createResearchRun(data: {
   letterRequestId: number;
   workflowJobId?: number;
@@ -495,6 +509,10 @@ export async function getLatestResearchRun(letterRequestId: number) {
 // ATTACHMENT HELPERS
 // ═══════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════
+// ATTACHMENTS
+// ═══════════════════════════════════════════════════════
+
 export async function createAttachment(data: {
   letterRequestId: number;
   uploadedByUserId: number;
@@ -518,6 +536,10 @@ export async function getAttachmentsByLetterId(letterRequestId: number) {
 
 // ═══════════════════════════════════════════════════════
 // NOTIFICATION HELPERS
+// ═══════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════
+// NOTIFICATIONS
 // ═══════════════════════════════════════════════════════
 
 export async function createNotification(data: {
@@ -571,6 +593,10 @@ export async function markAllNotificationsRead(userId: number) {
 // ADMIN STATS HELPERS
 // ═══════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════
+// ADMIN: SYSTEM STATS
+// ═══════════════════════════════════════════════════════
+
 export async function getSystemStats() {
   const db = await getDb();
   if (!db) return null;
@@ -616,6 +642,10 @@ function generateDiscountCode(employeeName: string): string {
   const suffix = Math.random().toString(36).substring(2, 8).toUpperCase();
   return `${prefix}-${suffix}`;
 }
+
+// ═══════════════════════════════════════════════════════
+// AFFILIATE: DISCOUNT CODES & COMMISSIONS
+// ═══════════════════════════════════════════════════════
 
 export async function createDiscountCodeForEmployee(employeeId: number, employeeName: string) {
   const db = await getDb();
@@ -786,6 +816,8 @@ export async function markCommissionsPaid(commissionIds: number[]) {
 // ═══════════════════════════════════════════════════════
 // PAYOUT REQUEST HELPERS
 // ═══════════════════════════════════════════════════════
+
+// ─── Affiliate: Payout Requests ──────────────────────────
 
 export async function createPayoutRequest(data: {
   employeeId: number;

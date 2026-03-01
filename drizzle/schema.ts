@@ -14,7 +14,8 @@ import {
 } from "drizzle-orm/pg-core";
 
 // ─── User Roles ───
-export const USER_ROLES = ["subscriber", "employee", "admin"] as const;
+// NOTE: Must match userRoleEnum below exactly.
+export const USER_ROLES = ["subscriber", "employee", "attorney", "admin"] as const;
 export type UserRole = (typeof USER_ROLES)[number];
 
 // ─── Letter Statuses (State Machine) ───
@@ -49,7 +50,8 @@ export const VERSION_TYPES = ["ai_draft", "attorney_edit", "final_approved"] as 
 export type VersionType = (typeof VERSION_TYPES)[number];
 
 // ─── Actor Types ───
-export const ACTOR_TYPES = ["system", "subscriber", "employee", "admin"] as const;
+// NOTE: Must match actorTypeEnum below exactly.
+export const ACTOR_TYPES = ["system", "subscriber", "employee", "attorney", "admin"] as const;
 export type ActorType = (typeof ACTOR_TYPES)[number];
 
 // ─── Job Statuses ───
