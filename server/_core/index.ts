@@ -6,6 +6,7 @@ initServerSentry();
 import express from "express";
 import { createServer } from "http";
 import net from "net";
+import type { RequestHandler } from "express";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { registerSupabaseAuthRoutes } from "../supabaseAuth";
@@ -46,8 +47,62 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer() {
   const app = express();
   const server = createServer(app);
+
+  const corsAllowlist = [
+    process.env.APP_BASE_URL,
+    process.env.ADMIN_APP_BASE_URL,
+    process.env.STAGING_APP_BASE_URL,
+    ...(process.env.CORS_ALLOWED_ORIGINS?.split(",") ?? []),
+  ]
+    .map(origin => origin?.trim())
+    .filter((origin): origin is string => Boolean(origin));
+
+  const wildcardConfigured = corsAllowlist.includes("*");
+  if (wildcardConfigured) {
+    throw new Error(
+      "Invalid CORS configuration: wildcard '*' cannot be used when credentials are enabled. Use explicit origins in APP_BASE_URL/CORS_ALLOWED_ORIGINS instead."
+    );
+  }
+
+  const allowedOrigins = new Set(corsAllowlist);
+  const corsMiddleware: RequestHandler = (req, res, next) => {
+    const requestOrigin = req.headers.origin;
+
+    if (requestOrigin && allowedOrigins.has(requestOrigin)) {
+      res.setHeader("Access-Control-Allow-Origin", requestOrigin);
+      res.setHeader("Access-Control-Allow-Credentials", "true");
+    }
+
+    res.setHeader("Vary", "Origin");
+    res.setHeader(
+      "Access-Control-Allow-Methods",
+      "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS"
+    );
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization, X-Requested-With"
+    );
+
+    if (req.method === "OPTIONS") {
+      if (requestOrigin && !allowedOrigins.has(requestOrigin)) {
+        res.status(403).json({ error: "Origin not allowed by CORS policy" });
+        return;
+      }
+      res.status(204).end();
+      return;
+    }
+
+    next();
+  };
+
+  app.use(corsMiddleware);
+
   // ⚠️ Stripe webhook MUST be registered BEFORE express.json() to get raw body
-  app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), stripeWebhookHandler);
+  app.post(
+    "/api/stripe/webhook",
+    express.raw({ type: "application/json" }),
+    stripeWebhookHandler
+  );
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
@@ -101,7 +156,9 @@ async function startServer() {
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
     // Warm up DB connection on startup so first request doesn't timeout
-    getDb().then(() => console.log('[Startup] Database connection warmed up')).catch(() => {});
+    getDb()
+      .then(() => console.log("[Startup] Database connection warmed up"))
+      .catch(() => {});
     // Start in-process cron scheduler (draft reminders, etc.)
     startCronScheduler();
   });

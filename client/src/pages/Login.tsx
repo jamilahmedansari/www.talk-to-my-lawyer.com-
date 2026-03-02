@@ -1,9 +1,18 @@
 import { useState } from "react";
 import { Link, useLocation, useSearch } from "wouter";
-import { getRoleDashboard, isRoleAllowedOnPath } from "@/components/ProtectedRoute";
+import {
+  getRoleDashboard,
+  isRoleAllowedOnPath,
+} from "@/components/ProtectedRoute";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Scale, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -50,6 +59,7 @@ export default function Login() {
           const resp = await fetch("/api/auth/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
+            credentials: "include",
             body: JSON.stringify({ email, password }),
             signal: controller.signal,
           });
@@ -66,7 +76,8 @@ export default function Login() {
       const data = await response.json();
 
       if (!response.ok) {
-        const msg = data.error || "Login failed. Please check your credentials.";
+        const msg =
+          data.error || "Login failed. Please check your credentials.";
         setError(msg);
         if (data.code === "EMAIL_NOT_VERIFIED") {
           setShowResendVerification(true);
@@ -79,7 +90,10 @@ export default function Login() {
       // Store the access token for tRPC requests
       if (data.session?.access_token) {
         localStorage.setItem("sb_access_token", data.session.access_token);
-        localStorage.setItem("sb_refresh_token", data.session.refresh_token || "");
+        localStorage.setItem(
+          "sb_refresh_token",
+          data.session.refresh_token || ""
+        );
       }
 
       // Invalidate the auth.me query to refresh user state
@@ -90,16 +104,20 @@ export default function Login() {
       });
 
       // Role-based redirect — honour ?next= if the role is allowed on that path
-      const role = data.user?.role ?? data.session?.user?.user_metadata?.role ?? "subscriber";
+      const role =
+        data.user?.role ??
+        data.session?.user?.user_metadata?.role ??
+        "subscriber";
       if (nextPath && isRoleAllowedOnPath(role, nextPath)) {
         navigate(nextPath);
       } else {
         navigate(getRoleDashboard(role));
       }
     } catch (err: any) {
-      const msg = err?.name === 'AbortError'
-        ? "Request timed out. Please try again — the server may be warming up."
-        : "An unexpected error occurred. Please try again.";
+      const msg =
+        err?.name === "AbortError"
+          ? "Request timed out. Please try again — the server may be warming up."
+          : "An unexpected error occurred. Please try again.";
       setError(msg);
       toast.error(msg);
     } finally {
@@ -130,7 +148,9 @@ export default function Login() {
         {/* Login Card */}
         <Card className="border-slate-200 shadow-lg">
           <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-2xl font-semibold text-center">Sign In</CardTitle>
+            <CardTitle className="text-2xl font-semibold text-center">
+              Sign In
+            </CardTitle>
             <CardDescription className="text-center">
               Enter your credentials to access your account
             </CardDescription>
@@ -146,7 +166,9 @@ export default function Login() {
                   {showResendVerification && (
                     <div className="mt-2 pt-2 border-t border-red-200">
                       {resendSent ? (
-                        <p className="text-green-700 text-xs font-medium">Verification email sent! Check your inbox.</p>
+                        <p className="text-green-700 text-xs font-medium">
+                          Verification email sent! Check your inbox.
+                        </p>
                       ) : (
                         <button
                           type="button"
@@ -154,23 +176,35 @@ export default function Login() {
                           onClick={async () => {
                             setResendLoading(true);
                             try {
-                              const res = await fetch("/api/auth/resend-verification", {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ email }),
-                              });
+                              const res = await fetch(
+                                "/api/auth/resend-verification",
+                                {
+                                  method: "POST",
+                                  headers: {
+                                    "Content-Type": "application/json",
+                                  },
+                                  credentials: "include",
+                                  body: JSON.stringify({ email }),
+                                }
+                              );
                               const d = await res.json();
                               setResendSent(true);
-                              toast.success("Verification email sent", { description: d.message || "Check your inbox." });
+                              toast.success("Verification email sent", {
+                                description: d.message || "Check your inbox.",
+                              });
                             } catch {
-                              toast.error("Could not resend email", { description: "Please try again." });
+                              toast.error("Could not resend email", {
+                                description: "Please try again.",
+                              });
                             } finally {
                               setResendLoading(false);
                             }
                           }}
                           className="text-indigo-700 hover:underline text-xs font-medium disabled:opacity-50"
                         >
-                          {resendLoading ? "Sending…" : "Resend verification email"}
+                          {resendLoading
+                            ? "Sending…"
+                            : "Resend verification email"}
                         </button>
                       )}
                     </div>
@@ -185,7 +219,7 @@ export default function Login() {
                   type="email"
                   placeholder="you@example.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={e => setEmail(e.target.value)}
                   required
                   autoComplete="email"
                   disabled={loading}
@@ -208,7 +242,7 @@ export default function Login() {
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter your password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={e => setPassword(e.target.value)}
                     required
                     autoComplete="current-password"
                     disabled={loading}
@@ -220,7 +254,11 @@ export default function Login() {
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                     tabIndex={-1}
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -243,7 +281,10 @@ export default function Login() {
 
             <div className="mt-6 text-center text-sm text-slate-500">
               Don't have an account?{" "}
-              <Link href="/signup" className="text-indigo-600 hover:text-indigo-700 font-medium hover:underline">
+              <Link
+                href="/signup"
+                className="text-indigo-600 hover:text-indigo-700 font-medium hover:underline"
+              >
                 Create one
               </Link>
             </div>
@@ -253,9 +294,13 @@ export default function Login() {
         {/* Footer */}
         <p className="text-center text-xs text-slate-400 mt-6">
           By signing in, you agree to our{" "}
-          <Link href="/terms" className="underline hover:text-slate-600">Terms of Service</Link>
-          {" "}and{" "}
-          <Link href="/privacy" className="underline hover:text-slate-600">Privacy Policy</Link>
+          <Link href="/terms" className="underline hover:text-slate-600">
+            Terms of Service
+          </Link>{" "}
+          and{" "}
+          <Link href="/privacy" className="underline hover:text-slate-600">
+            Privacy Policy
+          </Link>
         </p>
       </div>
     </div>

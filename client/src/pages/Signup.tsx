@@ -1,18 +1,41 @@
 import { useState } from "react";
 import { Link, useLocation, useSearch } from "wouter";
-import { getRoleDashboard, isRoleAllowedOnPath } from "@/components/ProtectedRoute";
+import {
+  getRoleDashboard,
+  isRoleAllowedOnPath,
+} from "@/components/ProtectedRoute";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, Loader2, AlertCircle, Check, User, Briefcase, Scale } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  Loader2,
+  AlertCircle,
+  Check,
+  User,
+  Briefcase,
+  Scale,
+} from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 
 type RoleOption = "subscriber" | "attorney" | "employee";
 
-const ROLE_OPTIONS: { value: RoleOption; label: string; description: string; icon: React.ReactNode }[] = [
+const ROLE_OPTIONS: {
+  value: RoleOption;
+  label: string;
+  description: string;
+  icon: React.ReactNode;
+}[] = [
   {
     value: "subscriber",
     label: "Client",
@@ -43,7 +66,11 @@ export default function Signup() {
     const params = new URLSearchParams(search);
     const raw = params.get("next");
     if (!raw) return null;
-    try { return decodeURIComponent(raw); } catch { return null; }
+    try {
+      return decodeURIComponent(raw);
+    } catch {
+      return null;
+    }
   })();
 
   const [role, setRole] = useState<RoleOption>("subscriber");
@@ -86,7 +113,13 @@ export default function Signup() {
           const resp = await fetch("/api/auth/signup", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, password, name: name || undefined, role }),
+            credentials: "include",
+            body: JSON.stringify({
+              email,
+              password,
+              name: name || undefined,
+              role,
+            }),
             signal: controller.signal,
           });
           clearTimeout(timeoutId);
@@ -123,7 +156,10 @@ export default function Signup() {
 
       if (data.session?.access_token) {
         localStorage.setItem("sb_access_token", data.session.access_token);
-        localStorage.setItem("sb_refresh_token", data.session.refresh_token || "");
+        localStorage.setItem(
+          "sb_refresh_token",
+          data.session.refresh_token || ""
+        );
       }
 
       await utils.auth.me.invalidate();
@@ -142,7 +178,9 @@ export default function Signup() {
       }
     } catch (err: any) {
       if (err?.name === "AbortError") {
-        setError("Request timed out. Please try again — the server may be warming up.");
+        setError(
+          "Request timed out. Please try again — the server may be warming up."
+        );
       } else {
         setError("An unexpected error occurred. Please try again.");
       }
@@ -163,31 +201,45 @@ export default function Signup() {
                 alt="Talk to My Lawyer"
                 className="w-12 h-12 object-contain"
               />
-              <span className="text-2xl font-bold text-slate-900">Talk to My Lawyer</span>
+              <span className="text-2xl font-bold text-slate-900">
+                Talk to My Lawyer
+              </span>
             </Link>
           </div>
           <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Check className="w-8 h-8 text-green-600" />
             </div>
-            <h1 className="text-2xl font-bold text-slate-800 mb-2">Check Your Email</h1>
-            <p className="text-slate-600 mb-2">We sent a verification link to:</p>
-            <p className="font-semibold text-indigo-700 mb-6 break-all">{signedUpEmail}</p>
-            <p className="text-slate-500 text-sm mb-6">
-              Click the link in the email to activate your account. The link expires in 24 hours.
+            <h1 className="text-2xl font-bold text-slate-800 mb-2">
+              Check Your Email
+            </h1>
+            <p className="text-slate-600 mb-2">
+              We sent a verification link to:
             </p>
-            <p className="text-slate-400 text-xs mb-4">Didn't receive it? Check your spam folder or</p>
+            <p className="font-semibold text-indigo-700 mb-6 break-all">
+              {signedUpEmail}
+            </p>
+            <p className="text-slate-500 text-sm mb-6">
+              Click the link in the email to activate your account. The link
+              expires in 24 hours.
+            </p>
+            <p className="text-slate-400 text-xs mb-4">
+              Didn't receive it? Check your spam folder or
+            </p>
             <button
               onClick={async () => {
                 try {
                   const res = await fetch("/api/auth/resend-verification", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
+                    credentials: "include",
                     body: JSON.stringify({ email: signedUpEmail }),
                   });
                   const d = await res.json();
                   toast.success("Verification email sent", {
-                    description: d.message || "Check your inbox for the confirmation link.",
+                    description:
+                      d.message ||
+                      "Check your inbox for the confirmation link.",
                   });
                 } catch {
                   toast.error("Could not resend email", {
@@ -201,7 +253,9 @@ export default function Signup() {
             </button>
             <div className="mt-6">
               <Link href="/login">
-                <Button variant="outline" className="w-full">Back to Sign In</Button>
+                <Button variant="outline" className="w-full">
+                  Back to Sign In
+                </Button>
               </Link>
             </div>
           </div>
@@ -221,7 +275,9 @@ export default function Signup() {
               alt="Talk to My Lawyer"
               className="w-12 h-12 object-contain"
             />
-            <span className="text-2xl font-bold text-slate-900">Talk to My Lawyer</span>
+            <span className="text-2xl font-bold text-slate-900">
+              Talk to My Lawyer
+            </span>
           </Link>
           <p className="text-slate-500 text-sm">
             Professional legal letters drafted and reviewed by attorneys
@@ -231,7 +287,9 @@ export default function Signup() {
         {/* Signup Card */}
         <Card className="border-slate-200 shadow-lg">
           <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-2xl font-semibold text-center">Create Account</CardTitle>
+            <CardTitle className="text-2xl font-semibold text-center">
+              Create Account
+            </CardTitle>
             <CardDescription className="text-center">
               Choose your role to get started
             </CardDescription>
@@ -249,7 +307,7 @@ export default function Signup() {
               <div className="space-y-2">
                 <Label>I am signing up as</Label>
                 <div className="grid grid-cols-3 gap-2">
-                  {ROLE_OPTIONS.map((opt) => (
+                  {ROLE_OPTIONS.map(opt => (
                     <button
                       key={opt.value}
                       type="button"
@@ -262,38 +320,50 @@ export default function Signup() {
                           : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
                       )}
                     >
-                      <span className={cn(
-                        "p-1.5 rounded-lg",
-                        role === opt.value ? "bg-indigo-100 text-indigo-600" : "bg-slate-100 text-slate-500"
-                      )}>
+                      <span
+                        className={cn(
+                          "p-1.5 rounded-lg",
+                          role === opt.value
+                            ? "bg-indigo-100 text-indigo-600"
+                            : "bg-slate-100 text-slate-500"
+                        )}
+                      >
                         {opt.icon}
                       </span>
-                      <span className="text-xs font-semibold leading-tight">{opt.label}</span>
-                      <span className="text-[10px] leading-tight text-slate-400 hidden sm:block">{opt.description}</span>
+                      <span className="text-xs font-semibold leading-tight">
+                        {opt.label}
+                      </span>
+                      <span className="text-[10px] leading-tight text-slate-400 hidden sm:block">
+                        {opt.description}
+                      </span>
                     </button>
                   ))}
                 </div>
                 {role === "attorney" && (
                   <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                    Attorney accounts require admin approval before you can access the review center.
+                    Attorney accounts require admin approval before you can
+                    access the review center.
                   </p>
                 )}
                 {role === "employee" && (
                   <p className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
-                    Employee accounts require admin approval before full access is granted.
+                    Employee accounts require admin approval before full access
+                    is granted.
                   </p>
                 )}
               </div>
 
               {/* Full Name */}
               <div className="space-y-2">
-                <Label htmlFor="name">Full Name <span className="text-slate-400">(optional)</span></Label>
+                <Label htmlFor="name">
+                  Full Name <span className="text-slate-400">(optional)</span>
+                </Label>
                 <Input
                   id="name"
                   type="text"
                   placeholder="John Doe"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={e => setName(e.target.value)}
                   autoComplete="name"
                   disabled={loading}
                 />
@@ -307,7 +377,7 @@ export default function Signup() {
                   type="email"
                   placeholder="you@example.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={e => setEmail(e.target.value)}
                   required
                   autoComplete="email"
                   disabled={loading}
@@ -323,7 +393,7 @@ export default function Signup() {
                     type={showPassword ? "text" : "password"}
                     placeholder="Create a password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={e => setPassword(e.target.value)}
                     required
                     autoComplete="new-password"
                     disabled={loading}
@@ -335,13 +405,25 @@ export default function Signup() {
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                     tabIndex={-1}
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
                   </button>
                 </div>
                 {password.length > 0 && (
                   <div className="flex items-center gap-2 text-xs mt-1">
-                    <Check className={`w-3 h-3 ${passwordChecks.length ? "text-green-500" : "text-slate-300"}`} />
-                    <span className={passwordChecks.length ? "text-green-600" : "text-slate-400"}>
+                    <Check
+                      className={`w-3 h-3 ${passwordChecks.length ? "text-green-500" : "text-slate-300"}`}
+                    />
+                    <span
+                      className={
+                        passwordChecks.length
+                          ? "text-green-600"
+                          : "text-slate-400"
+                      }
+                    >
                       At least 6 characters
                     </span>
                   </div>
@@ -356,15 +438,23 @@ export default function Signup() {
                   type={showPassword ? "text" : "password"}
                   placeholder="Confirm your password"
                   value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  onChange={e => setConfirmPassword(e.target.value)}
                   required
                   autoComplete="new-password"
                   disabled={loading}
                 />
                 {confirmPassword.length > 0 && (
                   <div className="flex items-center gap-2 text-xs mt-1">
-                    <Check className={`w-3 h-3 ${passwordChecks.match ? "text-green-500" : "text-slate-300"}`} />
-                    <span className={passwordChecks.match ? "text-green-600" : "text-slate-400"}>
+                    <Check
+                      className={`w-3 h-3 ${passwordChecks.match ? "text-green-500" : "text-slate-300"}`}
+                    />
+                    <span
+                      className={
+                        passwordChecks.match
+                          ? "text-green-600"
+                          : "text-slate-400"
+                      }
+                    >
                       Passwords match
                     </span>
                   </div>
@@ -389,7 +479,10 @@ export default function Signup() {
 
             <div className="mt-6 text-center text-sm text-slate-500">
               Already have an account?{" "}
-              <Link href="/login" className="text-indigo-600 hover:text-indigo-700 font-medium hover:underline">
+              <Link
+                href="/login"
+                className="text-indigo-600 hover:text-indigo-700 font-medium hover:underline"
+              >
                 Sign in
               </Link>
             </div>
@@ -399,9 +492,13 @@ export default function Signup() {
         {/* Footer */}
         <p className="text-center text-xs text-slate-400 mt-6">
           By creating an account, you agree to our{" "}
-          <Link href="/terms" className="underline hover:text-slate-600">Terms of Service</Link>
-          {" "}and{" "}
-          <Link href="/privacy" className="underline hover:text-slate-600">Privacy Policy</Link>
+          <Link href="/terms" className="underline hover:text-slate-600">
+            Terms of Service
+          </Link>{" "}
+          and{" "}
+          <Link href="/privacy" className="underline hover:text-slate-600">
+            Privacy Policy
+          </Link>
         </p>
       </div>
     </div>
