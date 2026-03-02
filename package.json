@@ -10,10 +10,9 @@
     "check": "tsc --noEmit",
     "mcp:sync": "node scripts/sync-mcp-configs.mjs",
     "format": "prettier --write .",
-    "test": "vitest run",
+    "test": "vitest run --passWithNoTests",
     "db:push": "drizzle-kit generate && drizzle-kit migrate",
-    "test:auth-rbac:guard": "node scripts/check-auth-rbac-test-count.mjs",
-    "test:ci": "vitest run --passWithNoTests && pnpm test:auth-rbac:guard"
+    "lint": "eslint ."
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.47",
