@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "com.stripe/mcp": {
+      "type": "http",
+      "url": "https://mcp.stripe.com",
+      "gallery": "https://api.mcp.github.com",
+      "version": "0.2.4"
+    },
+    "supabase mcp": {
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp?project_ref=lguqhibpxympxvwqpedf&features=docs%2Caccount%2Cdatabase%2Cdebugging%2Cdevelopment%2Cfunctions%2Cbranching%2Cstorage"
+    }
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "inputs": [
+    {
+      "id": "project-ref",
+      "type": "promptString",
+      "description": "Supabase project reference ID",
+      "password": false
+    },
+    {
+      "id": "read-only",
+      "type": "promptString",
+      "description": "Enable read-only mode",
+      "password": false
+    },
+    {
+      "id": "features",
+      "type": "promptString",
+      "description": "Comma-separated list of features to enable",
+      "password": false
+    },
+    {
+      "id": "api-url",
+      "type": "promptString",
+      "description": "Custom API URL",
+      "password": false
+    },
+    {
+      "id": "SUPABASE_ACCESS_TOKEN",
+      "type": "promptString",
+      "description": "Personal access token for Supabase API",
+      "password": true
+    }
+  ],
+  "servers": {
+    "com.stripe/mcp": {
+      "type": "http",
+      "url": "https://mcp.stripe.com",
+      "gallery": "https://api.mcp.github.com",
+      "version": "0.2.4"
+    },
+    "supabase mcp": {
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp?project_ref=lguqhibpxympxvwqpedf&features=docs%2Caccount%2Cdatabase%2Cdebugging%2Cdevelopment%2Cfunctions%2Cbranching%2Cstorage"
+    }
+  },
+  "clientMappings": {
+    "copilot": {
+      "output": ".vscode/mcp.json"
+    },
+    "claude": {
+      "output": ".mcp/generated/claude.mcp.json"
+    },
+    "codex": {
+      "output": ".mcp/generated/codex.mcp.json"
+    }
+  }
+}

@@ -17,6 +17,7 @@ This document defines the exact remaining feature gaps, required schema changes,
 | [`docs/PIPELINE_ARCHITECTURE.md`](docs/PIPELINE_ARCHITECTURE.md) | AI pipeline routing decision (Perplexity → Anthropic × 2 active, n8n dormant) |
 | [`docs/GAP_ANALYSIS.md`](docs/GAP_ANALYSIS.md) | Historical gap analysis from spec audit |
 | [`docs/SUPABASE_MCP_CAPABILITIES.md`](docs/SUPABASE_MCP_CAPABILITIES.md) | Supabase MCP connector usage guide |
+| [`docs/CENTRALIZED_MCP_ACCESS.md`](docs/CENTRALIZED_MCP_ACCESS.md) | Single-source MCP config for Copilot, Claude Code, and Codex |
 | [`SPEC_COMPLIANCE.md`](SPEC_COMPLIANCE.md) | Spec compliance tracking |
 | [`AUDIT_REPORT.md`](AUDIT_REPORT.md) | Architecture audit report |
 | [`todo.md`](todo.md) | Full feature and bug tracking (all phases) |
@@ -49,6 +50,7 @@ pnpm install        # install dependencies
 pnpm dev            # start dev server (http://localhost:3000)
 pnpm test           # run Vitest suite
 pnpm tsc --noEmit   # TypeScript check
+pnpm mcp:sync       # generate MCP configs for Copilot / Claude / Codex
 ```
 
 ## Validation Gate
