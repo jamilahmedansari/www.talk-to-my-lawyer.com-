@@ -4,7 +4,7 @@
 
 ## Overview
 
-This is a TypeScript-based legal tech application built with Vite, featuring a full-stack architecture with tRPC API, Drizzle ORM database management, Stripe payment integration, and comprehensive email notifications. The codebase follows a phase-driven development approach with extensive testing and documentation practices.
+This skill teaches development patterns for manus-talk-to-my-lawyer, a TypeScript/Vite-based legal technology platform. The codebase follows a phase-based development approach with comprehensive testing, structured database migrations, and integrated payment processing. The application appears to be a full-stack platform supporting multiple user roles (subscribers, employees, attorneys, admins) with email notifications, Stripe payments, and tRPC API architecture.
 
 ## Coding Conventions
 
@@ -12,207 +12,190 @@ This is a TypeScript-based legal tech application built with Vite, featuring a f
 - Use **camelCase** for all file names
 - Test files follow pattern: `*.test.*`
 - Phase-based test files: `phase*.test.ts`
+- Database migrations: `drizzle/####_*.sql`
 
 ### Import/Export Style
 ```typescript
-// Mixed export style - use as appropriate
-export default function Component() { }
-export const utility = () => { }
+// Use alias imports
+import { something } from '@/shared/types'
+import { db } from '@/server/db'
 
-// Alias imports preferred
-import { something as alias } from './module'
+// Mixed export style - both named and default exports
+export const namedFunction = () => {}
+export default ComponentName
 ```
 
 ### Commit Messages
 - Average length: ~271 characters
 - Common prefixes: `checkpoint`, `docs`
-- Include test counts and TypeScript error status
-- Example: `checkpoint: phase 3 complete - user management with 25 tests passing, 0 TS errors`
+- Phase commits: `Phase X:` or `Checkpoint: Phase X:`
+- Freeform descriptive style
 
 ## Workflows
 
-### Phase Development Cycle
-**Trigger:** When implementing a new feature or major change  
-**Command:** `/phase-complete`
+### Phase Checkpoint Commit
+**Trigger:** When finishing a major feature or improvement phase
+**Command:** `/complete-phase`
 
-1. Implement feature changes across relevant files
-2. Add comprehensive test file (`phase*.test.ts`) with 10-50+ test cases
-3. Update `todo.md` with completion status and progress tracking
-4. Create checkpoint commit with phase number and detailed summary
-5. Ensure all tests pass and 0 TypeScript errors before committing
-
-```typescript
-// Example test structure
-describe('Phase 5: Advanced Features', () => {
-  test('happy path scenario', async () => {
-    // Implementation
-  });
-  
-  test('edge case handling', async () => {
-    // Error scenarios
-  });
-});
-```
+1. Implement feature changes across multiple implementation files
+2. Add comprehensive test coverage in `server/phase*.test.ts`
+3. Run tests and validate all pass (document XXX/XXX tests passing)
+4. Confirm 0 TypeScript errors with `tsc --noEmit`
+5. Create checkpoint commit with descriptive message:
+   ```
+   Checkpoint: Phase X: [Feature description and testing summary]
+   
+   - Implemented [specific changes]
+   - Added tests covering [test scenarios]  
+   - XXX/XXX tests passing
+   - 0 TypeScript errors
+   ```
+6. Update `todo.md` with completed phase progress
 
 ### Database Schema Migration
-**Trigger:** When database schema changes are needed  
-**Command:** `/add-table`
+**Trigger:** When adding new database fields or tables
+**Command:** `/add-db-column`
 
-1. Update `drizzle/schema.ts` with new tables/columns using Drizzle syntax
-2. Generate migration SQL file in `drizzle/` directory
-3. Update `drizzle/meta/` snapshot and journal files
-4. Apply migration to database
-5. Update `server/db.ts` with new query functions
+1. Update `drizzle/schema.ts` with new schema definitions:
+   ```typescript
+   export const newTable = pgTable('new_table', {
+     id: serial('id').primaryKey(),
+     newColumn: text('new_column').notNull(),
+     createdAt: timestamp('created_at').defaultNow(),
+   });
+   ```
+2. Generate migration SQL file: `drizzle/####_description.sql`
+3. Update migration metadata in `drizzle/meta/*.json`
+4. Update `drizzle/meta/_journal.json` with new migration entry
+5. Apply migration to Supabase database (via MCP or direct SQL execution)
+6. Update `server/db.ts` with new query functions if needed:
+   ```typescript
+   export const getNewTableData = async (id: number) => {
+     return await db.select().from(newTable).where(eq(newTable.id, id));
+   };
+   ```
 
-```typescript
-// Example schema addition
-export const newTable = pgTable('new_table', {
-  id: serial('id').primaryKey(),
-  name: varchar('name', { length: 255 }).notNull(),
-  createdAt: timestamp('created_at').defaultNow()
-});
-```
-
-### Email Template Implementation
-**Trigger:** When adding a new email notification feature  
+### Email Template Integration
+**Trigger:** When adding new email notifications to the system
 **Command:** `/add-email-template`
 
-1. Add email template function to `server/email.ts`
-2. Wire email trigger into relevant router procedure
-3. Add comprehensive tests for email functionality
-4. Update `todo.md` with feature completion
-5. Ensure fire-and-forget error handling for email sending
+1. Add email template function to `server/email.ts`:
+   ```typescript
+   export const sendNewNotificationEmail = async (
+     to: string,
+     data: { name: string; details: string }
+   ) => {
+     // Branded email template implementation
+   };
+   ```
+2. Wire email sending into relevant tRPC procedures in `server/routers.ts`:
+   ```typescript
+   .mutation(async ({ input, ctx }) => {
+     const result = await someDbOperation(input);
+     
+     // Fire-and-forget email sending
+     sendNewNotificationEmail(input.email, result).catch(console.error);
+     
+     return result;
+   })
+   ```
+3. Add email template tests in `server/phase*.test.ts`
+4. Update `todo.md` with email integration status
+5. Ensure fire-and-forget error handling (errors caught and logged, don't block main flow)
 
-```typescript
-// Example email template
-export const sendNotificationEmail = async (to: string, data: any) => {
-  try {
-    // Email implementation with error handling
-  } catch (error) {
-    // Fire-and-forget: log but don't throw
-    console.error('Email send failed:', error);
-  }
-};
-```
+### Frontend Page Updates
+**Trigger:** When implementing frontend features that span multiple pages
+**Command:** `/update-frontend-pages`
 
-### Frontend Page Development
-**Trigger:** When adding new user-facing functionality  
-**Command:** `/add-page`
-
-1. Create or update page component in `client/src/pages/`
-2. Update `App.tsx` with new route configuration
-3. Add navigation links in `AppLayout.tsx` if needed
-4. Update `ProtectedRoute.tsx` for role-based access control
-5. Add UI components and styling with consistent patterns
-
-```typescript
-// Example route addition
-<Route path="/new-feature" element={
-  <ProtectedRoute allowedRoles={['admin', 'user']}>
-    <NewFeaturePage />
-  </ProtectedRoute>
-} />
-```
-
-### tRPC Procedure Addition
-**Trigger:** When adding new backend API functionality  
-**Command:** `/add-api-endpoint`
-
-1. Add procedure to appropriate router in `server/routers/`
-2. Add database query functions to `server/db.ts`
-3. Add input/output type definitions to `shared/types.ts`
-4. Wire frontend calls to new procedures using tRPC hooks
-5. Add comprehensive test coverage for all scenarios
-
-```typescript
-// Example tRPC procedure
-export const userRouter = router({
-  create: publicProcedure
-    .input(createUserSchema)
-    .output(userSchema)
-    .mutation(async ({ input }) => {
-      return await createUser(input);
-    })
-});
-```
-
-### Comprehensive Testing Suite
-**Trigger:** When completing feature development  
-**Command:** `/add-comprehensive-tests`
-
-1. Create `phase*.test.ts` file with descriptive name
-2. Add 10-50+ test cases covering happy path and edge cases
-3. Test database operations, API endpoints, and error handling
-4. Verify TypeScript compilation and all tests passing
-5. Update test count in commit messages for tracking
+1. Update relevant page components in `client/src/pages/`:
+   ```typescript
+   // Ensure proper role-based rendering
+   if (user?.role === 'attorney') {
+     return <AttorneyView />;
+   }
+   ```
+2. Modify shared components if needed in `client/src/components/`
+3. Update routing in `client/src/App.tsx` if adding new routes
+4. Ensure responsive design and mobile compatibility
+5. Test across all user roles: subscriber, employee, attorney, admin
+6. Verify navigation and permissions work correctly
 
 ### Stripe Payment Integration
-**Trigger:** When adding payment or billing functionality  
-**Command:** `/add-payment-flow`
+**Trigger:** When adding new payment flows or modifying pricing
+**Command:** `/update-stripe-integration`
 
-1. Update `server/stripe.ts` with new checkout functions
-2. Add webhook handling in `server/stripeWebhook.ts`
-3. Update `server/stripe-products.ts` with product definitions
-4. Add frontend payment UI components with error handling
-5. Add database tracking for payments and subscriptions
+1. Update `server/stripe.ts` with new checkout logic:
+   ```typescript
+   export const createCheckoutSession = async (priceId: string) => {
+     return stripe.checkout.sessions.create({
+       // Checkout configuration
+     });
+   };
+   ```
+2. Modify `server/stripeWebhook.ts` for webhook handling:
+   ```typescript
+   case 'checkout.session.completed':
+     await handleCheckoutCompleted(event.data.object);
+     break;
+   ```
+3. Update `shared/pricing.ts` with new pricing constants
+4. Update frontend payment pages (`Pricing.tsx`, `Billing.tsx`, etc.)
+5. Add commission tracking in `server/db.ts` if needed
+6. Test payment flows end-to-end in Stripe test mode
 
-```typescript
-// Example Stripe integration
-export const createCheckoutSession = async (priceId: string, customerId: string) => {
-  const session = await stripe.checkout.sessions.create({
-    customer: customerId,
-    line_items: [{ price: priceId, quantity: 1 }],
-    mode: 'subscription'
-  });
-  return session;
-};
-```
-
-### Documentation Maintenance
-**Trigger:** When major features are complete or architecture changes  
+### Documentation Update
+**Trigger:** When documenting architecture, features, or development processes
 **Command:** `/update-docs`
 
-1. Update `README.md` with new features and setup instructions
-2. Add or update `docs/` files (`ARCHITECTURE.md`, `CONTRIBUTING.md`, etc.)
-3. Create detailed documentation with practical examples
-4. Update `todo.md` with progress tracking and next steps
-5. Add validation reports and comprehensive audit documentation
+1. Create or update markdown files in `docs/` or root directory
+2. Update `README.md` with project overview and setup instructions
+3. Document system architecture in `ARCHITECTURE.md`
+4. Update `todo.md` with current progress and next steps
+5. Ensure documentation reflects current codebase state and deployment process
+6. Include code examples and configuration details
+
+### tRPC Procedure Addition
+**Trigger:** When adding new API endpoints for frontend consumption
+**Command:** `/add-trpc-procedure`
+
+1. Add procedure definition to `server/routers.ts` or modular router files:
+   ```typescript
+   newProcedure: publicProcedure
+     .input(z.object({
+       field: z.string(),
+     }))
+     .query(async ({ input, ctx }) => {
+       return await getSomeData(input.field);
+     }),
+   ```
+2. Add input validation with Zod schemas for type safety
+3. Implement database queries in `server/db.ts` if needed
+4. Add comprehensive tests in `server/phase*.test.ts`:
+   ```typescript
+   test('newProcedure returns expected data', async () => {
+     const result = await caller.newProcedure({ field: 'test' });
+     expect(result).toMatchObject({ /* expected shape */ });
+   });
+   ```
+5. Wire frontend calls to new procedures using tRPC hooks
+6. Ensure proper role-based access control with middleware
 
 ## Testing Patterns
 
-- Test files use pattern: `*.test.*`
-- Phase-based testing: `phase*.test.ts` with descriptive names
-- Aim for 10-50+ test cases per major feature
-- Cover happy paths, edge cases, and error scenarios
-- Test database operations and API endpoints thoroughly
-- Ensure 0 TypeScript errors before committing
-
-```typescript
-// Standard test structure
-describe('Feature Name', () => {
-  beforeEach(() => {
-    // Setup
-  });
-
-  test('happy path', async () => {
-    // Main functionality test
-  });
-
-  test('error handling', async () => {
-    // Error scenario test
-  });
-});
-```
+- Tests are organized by development phases: `phase*.test.ts`
+- Comprehensive test coverage expected for each phase
+- Test results documented in commit messages (XXX/XXX tests passing)
+- TypeScript compilation must pass (0 errors) before commits
+- Tests cover tRPC procedures, database operations, and email functionality
 
 ## Commands
 
 | Command | Purpose |
 |---------|---------|
-| `/phase-complete` | Complete a development phase with testing and documentation |
-| `/add-table` | Add new database schema with Drizzle migrations |
-| `/add-email-template` | Implement new email notification with template |
-| `/add-page` | Create new frontend page with routing |
-| `/add-api-endpoint` | Add new tRPC procedure with validation |
-| `/add-comprehensive-tests` | Create extensive test suite for features |
-| `/add-payment-flow` | Implement Stripe payment integration |
-| `/update-docs` | Maintain comprehensive project documentation |
+| `/complete-phase` | Complete a development phase with comprehensive testing and checkpoint commit |
+| `/add-db-column` | Add new database schema with proper Drizzle migration |
+| `/add-email-template` | Integrate new branded email notifications with fire-and-forget sending |
+| `/update-frontend-pages` | Update multiple frontend pages with role-based considerations |
+| `/update-stripe-integration` | Modify payment flows and webhook handling |
+| `/update-docs` | Create or update project documentation |
+| `/add-trpc-procedure` | Add new API endpoints with validation and testing |
