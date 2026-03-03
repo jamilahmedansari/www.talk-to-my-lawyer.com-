@@ -196,9 +196,11 @@ export default function AdminUsers() {
 
                         <Select
                           value={user.role}
-                          onValueChange={(newRole) =>
-                            updateRole.mutate({ userId: user.id, role: newRole as any })
-                          }
+                          onValueChange={(newRole) => {
+                            // Skip the mutation if the role hasn't actually changed
+                            if (newRole === user.role) return;
+                            updateRole.mutate({ userId: user.id, role: newRole as any });
+                          }}
                           disabled={updateRole.isPending}
                         >
                           <SelectTrigger className="w-28 sm:w-32 h-7 text-xs">

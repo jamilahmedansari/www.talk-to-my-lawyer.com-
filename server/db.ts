@@ -221,6 +221,35 @@ export async function updateLetterStatus(
   await db.update(letterRequests).set(updateData as any).where(eq(letterRequests.id, id));
 }
 
+/**
+ * Atomic compare-and-set for letter status.
+ * Only updates the row when the current status matches `expectedStatus`.
+ * Returns `true` if the row was updated, `false` if the status had already changed.
+ * Use this instead of updateLetterStatus in webhook/concurrent handlers to prevent
+ * duplicate side-effects on retries.
+ */
+export async function updateLetterStatusIfCurrent(
+  id: number,
+  expectedStatus: string,
+  newStatus: string,
+  options?: { assignedReviewerId?: number | null }
+): Promise<boolean> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const updateData: Record<string, unknown> = {
+    status: newStatus,
+    lastStatusChangedAt: new Date(),
+    updatedAt: new Date(),
+  };
+  if (options?.assignedReviewerId !== undefined) updateData.assignedReviewerId = options.assignedReviewerId;
+  const result = await db
+    .update(letterRequests)
+    .set(updateData as any)
+    .where(and(eq(letterRequests.id, id), eq(letterRequests.status as any, expectedStatus)))
+    .returning({ id: letterRequests.id });
+  return result.length > 0;
+}
+
 export async function updateLetterVersionPointers(
   id: number,
   pointers: { currentAiDraftVersionId?: number; currentFinalVersionId?: number }

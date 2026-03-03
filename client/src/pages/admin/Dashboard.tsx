@@ -49,7 +49,9 @@ export default function AdminDashboard() {
         .map(([status, count]) => ({ name: formatStatus(status), count, status }))
         .sort((a, b) => b.count - a.count)
     : [];
-  const pieData = barData.map(({ name, count }) => ({ name, value: count }));
+  // Carry the raw status key in pieData so the Cell color lookup is direct
+  // and doesn't need a secondary barData.find() call.
+  const pieData = barData.map(({ name, count, status }) => ({ name, value: count, status }));
 
   return (
     <AppLayout breadcrumb={[{ label: "Admin Dashboard" }]}>
@@ -151,11 +153,7 @@ export default function AdminDashboard() {
                       {pieData.map((entry, index) => (
                         <Cell
                           key={`cell-${index}`}
-                          fill={
-                            STATUS_COLORS[
-                              barData.find((b) => b.name === entry.name)?.status ?? ""
-                            ] ?? "#6366f1"
-                          }
+                          fill={STATUS_COLORS[entry.status] ?? "#6366f1"}
                         />
                       ))}
                     </Pie>

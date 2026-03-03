@@ -898,14 +898,24 @@ export const appRouter = router({
           const reviewTeamEmail =
             process.env.REVIEW_TEAM_EMAIL ??
             process.env.ADMIN_REVIEW_EMAIL;
+          // Fallback: if no review-team env var is set, use DEVOPS_EMAIL / OWNER_EMAIL
+          // so notifications are never silently dropped.
+          const FALLBACK_REVIEW_RECIPIENT =
+            process.env.DEVOPS_EMAIL ??
+            process.env.OWNER_EMAIL ??
+            null;
+          const effectiveReviewEmail = reviewTeamEmail ?? FALLBACK_REVIEW_RECIPIENT;
           if (!reviewTeamEmail) {
             console.error(
               "[legacy.freeUnlock] Missing REVIEW_TEAM_EMAIL / ADMIN_REVIEW_EMAIL — " +
-              "review-queue notification NOT sent for letter #" + input.letterId
+              (effectiveReviewEmail
+                ? `falling back to ${effectiveReviewEmail} for letter #${input.letterId}`
+                : "no fallback configured, review-queue notification NOT sent for letter #" + input.letterId)
             );
-          } else {
+          }
+          if (effectiveReviewEmail) {
             await sendNewReviewNeededEmail({
-              to: reviewTeamEmail,
+              to: effectiveReviewEmail,
               name: "Review Team",
               letterSubject: letter.subject,
               letterId: input.letterId,

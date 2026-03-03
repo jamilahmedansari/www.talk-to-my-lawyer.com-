@@ -12,7 +12,7 @@
  * billing.dismissAttorneyReviewUpsell which marks the upsell as dismissed so the
  * card is not shown again on reload.
  */
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   Gift, Scale, CheckCircle, ArrowRight, X, Loader2, Star,
 } from "lucide-react";
@@ -36,19 +36,34 @@ export function LetterFreeTrialUpsell({
 }: LetterFreeTrialUpsellProps) {
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  // Ref to the blank popup opened synchronously on click so browsers don't block it.
+  // The popup's URL is set to the Stripe checkout URL once the mutation resolves.
+  const popupRef = useRef<Window | null>(null);
 
   // $100 attorney review upsell checkout
   const attorneyReviewMutation = trpc.billing.createAttorneyReviewCheckout.useMutation({
     onSuccess: (data) => {
       if (data.url) {
         setIsRedirecting(true);
-        window.open(data.url, "_blank");
+        if (popupRef.current && !popupRef.current.closed) {
+          // Navigate the already-open blank popup to the Stripe URL
+          popupRef.current.location.href = data.url;
+        } else {
+          // Fallback: popup was blocked — open normally
+          window.open(data.url, "_blank");
+        }
+        popupRef.current = null;
         toast.info("Redirecting to secure payment...", {
           description: "Complete checkout to submit your letter for attorney review.",
         });
       }
     },
     onError: (err) => {
+      // Close the blank popup if the mutation failed
+      if (popupRef.current && !popupRef.current.closed) {
+        popupRef.current.close();
+        popupRef.current = null;
+      }
       setIsRedirecting(false);
       toast.error("Could not start checkout", { description: err.message });
     },
@@ -134,7 +149,12 @@ export function LetterFreeTrialUpsell({
           {/* Primary: pay for attorney review */}
           <Button
             className="flex-1 bg-amber-600 hover:bg-amber-700 text-white"
-            onClick={() => attorneyReviewMutation.mutate({ letterId })}
+            onClick={() => {
+              // Open a blank popup synchronously in the click handler so browsers
+              // don't block it. The URL is set in onSuccess once Stripe responds.
+              popupRef.current = window.open("", "_blank");
+              attorneyReviewMutation.mutate({ letterId });
+            }}
             disabled={
               attorneyReviewMutation.isPending ||
               isRedirecting ||

@@ -138,13 +138,16 @@ export const billingRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
       const { letterRequests } = await import("../../drizzle/schema");
-      const { eq: eqOp, and: andOp, notInArray: notInOp } = await import("drizzle-orm");
+      const { eq: eqOp, and: andOp, notInArray: notInOp, ne: neOp } = await import("drizzle-orm");
+      // Exclude the current letter from the count so the letter being unlocked
+      // does not self-count and incorrectly block the free-unlock path.
       const paidLetters = await db
         .select({ id: letterRequests.id })
         .from(letterRequests)
         .where(
           andOp(
             eqOp(letterRequests.userId, ctx.user.id),
+            neOp(letterRequests.id, input.letterId),
             notInOp(letterRequests.status, [
               "submitted",
               "researching",
@@ -322,10 +325,12 @@ export const billingRouter = router({
       await checkTrpcRateLimit("payment", `user:${ctx.user.id}`);
       const letter = await getLetterRequestSafeForSubscriber(input.letterId, ctx.user.id);
       if (!letter) throw new TRPCError({ code: "NOT_FOUND", message: "Letter not found" });
-      if (letter.status !== "generated_unlocked") {
+      // Allow both generated_unlocked (upsell not yet dismissed) and
+      // upsell_dismissed (subscriber dismissed but then changed their mind)
+      if (letter.status !== "generated_unlocked" && letter.status !== "upsell_dismissed") {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: `Attorney review upsell only available on free-trial letters (got: ${letter.status})`,
+          message: `Attorney review upsell only available on free-trial letters (got: ${letter.status}). Expected: generated_unlocked or upsell_dismissed`,
         });
       }
       const origin = getAppUrl(ctx.req);
@@ -354,7 +359,20 @@ export const billingRouter = router({
           message: "Can only dismiss upsell on a free-trial letter",
         });
       }
-      await updateLetterStatus(input.letterId, "upsell_dismissed");
+      // Atomic compare-and-set: only transition if status is still generated_unlocked.
+      // Prevents a TOCTOU race from overwriting a concurrent status change.
+      const { updateLetterStatusIfCurrent } = await import("../db");
+      const updated = await updateLetterStatusIfCurrent(
+        input.letterId,
+        "generated_unlocked",
+        "upsell_dismissed"
+      );
+      if (!updated) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Letter status changed before dismiss could be applied. Please refresh and try again.",
+        });
+      }
       await logReviewAction({
         letterRequestId: input.letterId,
         reviewerId: ctx.user.id,

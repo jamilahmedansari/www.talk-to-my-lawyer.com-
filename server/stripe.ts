@@ -505,6 +505,10 @@ export async function createAttorneyReviewCheckout(params: {
       user_id: userId.toString(),
       letter_id: letterId.toString(),
       unlock_type: "attorney_review_upsell",
+      // plan_id is read by the webhook's activateSubscription call.
+      // Using a dedicated value ensures the webhook does not create a
+      // "per_letter" subscription record for this one-time upsell payment.
+      plan_id: "attorney_review_upsell",
       customer_email: email,
       customer_name: name ?? "",
     },

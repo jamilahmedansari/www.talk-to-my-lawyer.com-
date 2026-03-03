@@ -648,18 +648,17 @@ export default function Profile() {
             )}
           </CardContent>
         </Card>
+        {/* ─── Role-Specific Sections ─────────────────────────────────────── */}
+
+        {/* Employee: Affiliate Info */}
+        {user?.role === "employee" && <EmployeeProfileSection userId={user.id} />}
+
+        {/* Attorney: Professional Info */}
+        {user?.role === "attorney" && <AttorneyProfileSection />}
+
+        {/* Admin: System Info */}
+        {user?.role === "admin" && <AdminProfileSection />}
       </div>
-
-      {/* ─── Role-Specific Sections ─────────────────────────────────────────── */}
-
-      {/* Employee: Affiliate Info */}
-      {user?.role === "employee" && <EmployeeProfileSection userId={user.id} />}
-
-      {/* Attorney: Professional Info */}
-      {user?.role === "attorney" && <AttorneyProfileSection />}
-
-      {/* Admin: System Info */}
-      {user?.role === "admin" && <AdminProfileSection />}
     </AppLayout>
   );
 }
@@ -769,12 +768,16 @@ function AttorneyProfileSection() {
 
   const handleSave = () => {
     setSaving(true);
-    // Bar number and specialisation are informational fields stored locally
-    // A future migration can add these columns to the users table
+    // Bar number and specialisation are stored in local component state only.
+    // A future DB migration (adding bar_number and specialisation columns to the
+    // users table) is required before these values can be persisted.
+    // We intentionally do NOT show a success toast to avoid misleading the user.
     setTimeout(() => {
       setSaving(false);
       setEditing(false);
-      toast.success("Professional profile updated");
+      toast.warning("Changes are local only", {
+        description: "Persistence is not yet implemented — your changes will be lost on refresh.",
+      });
     }, 300);
   };
 
