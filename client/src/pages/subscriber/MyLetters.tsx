@@ -122,7 +122,7 @@ export default function MyLetters() {
         ) : (
           <div className="space-y-2">
             {filtered.map((letter) => {
-              const hasPdf = letter.status === "approved" && !!(letter as any).pdfUrl;
+              const hasPdf = letter.status === "approved" && !!(letter as any).pdfStoragePath;
               const isApproved = letter.status === "approved";
 
               return (

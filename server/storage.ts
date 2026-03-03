@@ -1,102 +1,148 @@
-// Preconfigured storage helpers for Manus WebDev templates
-// Uses the Biz-provided storage proxy (Authorization: Bearer <token>)
+/**
+ * Supabase Storage Module
+ *
+ * Replaces the legacy Manus Forge S3 proxy.
+ * Both buckets (attachments, approved-letters) are PRIVATE.
+ * Files are uploaded using the service-role admin client.
+ * Access is granted via short-lived signed URLs generated on demand.
+ *
+ * Buckets:
+ *   - "attachments"       — user-uploaded supporting documents
+ *   - "approved-letters"  — system-generated final PDF letters
+ */
 
-import { ENV } from './_core/env';
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-type StorageConfig = { baseUrl: string; apiKey: string };
+// ─── Admin Client (service_role) ───────────────────────────────────────────
+// Bypasses RLS — used only for server-side uploads.
+let _adminClient: SupabaseClient | null = null;
 
-function getStorageConfig(): StorageConfig {
-  const baseUrl = ENV.forgeApiUrl;
-  const apiKey = ENV.forgeApiKey;
+function getAdminClient(): SupabaseClient {
+  const supabaseUrl =
+    process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
-  if (!baseUrl || !apiKey) {
+  if (!supabaseUrl || !serviceKey) {
     throw new Error(
-      "Storage proxy credentials missing: set BUILT_IN_FORGE_API_URL and BUILT_IN_FORGE_API_KEY"
+      "[Storage] Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY"
     );
   }
 
-  return { baseUrl: baseUrl.replace(/\/+$/, ""), apiKey };
+  if (!_adminClient) {
+    _adminClient = createClient(supabaseUrl, serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+  }
+  return _adminClient;
 }
 
-function buildUploadUrl(baseUrl: string, relKey: string): URL {
-  const url = new URL("v1/storage/upload", ensureTrailingSlash(baseUrl));
-  url.searchParams.set("path", normalizeKey(relKey));
-  return url;
-}
+// ─── User-scoped Client ────────────────────────────────────────────────────
+// Scoped to the caller's JWT — used for signed URL generation so RLS is enforced.
+function createUserClient(jwt: string): SupabaseClient {
+  const supabaseUrl =
+    process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
+  const anonKey =
+    process.env.VITE_SUPABASE_ANON_KEY ||
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+    "";
 
-async function buildDownloadUrl(
-  baseUrl: string,
-  relKey: string,
-  apiKey: string
-): Promise<string> {
-  const downloadApiUrl = new URL(
-    "v1/storage/downloadUrl",
-    ensureTrailingSlash(baseUrl)
-  );
-  downloadApiUrl.searchParams.set("path", normalizeKey(relKey));
-  const response = await fetch(downloadApiUrl, {
-    method: "GET",
-    headers: buildAuthHeaders(apiKey),
+  if (!supabaseUrl || !anonKey) {
+    throw new Error(
+      "[Storage] Missing SUPABASE_URL or VITE_SUPABASE_ANON_KEY"
+    );
+  }
+
+  return createClient(supabaseUrl, anonKey, {
+    global: { headers: { Authorization: `Bearer ${jwt}` } },
+    auth: { autoRefreshToken: false, persistSession: false },
   });
-  return (await response.json()).url;
 }
 
-function ensureTrailingSlash(value: string): string {
-  return value.endsWith("/") ? value : `${value}/`;
-}
+// ─── Upload ────────────────────────────────────────────────────────────────
 
-function normalizeKey(relKey: string): string {
-  return relKey.replace(/^\/+/, "");
-}
-
-function toFormData(
-  data: Buffer | Uint8Array | string,
-  contentType: string,
-  fileName: string
-): FormData {
-  const blob =
-    typeof data === "string"
-      ? new Blob([data], { type: contentType })
-      : new Blob([data as any], { type: contentType });
-  const form = new FormData();
-  form.append("file", blob, fileName || "file");
-  return form;
-}
-
-function buildAuthHeaders(apiKey: string): HeadersInit {
-  return { Authorization: `Bearer ${apiKey}` };
-}
-
+/**
+ * Uploads a file to a private Supabase Storage bucket.
+ * Returns the storage path (key) only — never a public URL.
+ *
+ * @param bucketName  "attachments" | "approved-letters"
+ * @param filePath    Full path within the bucket, e.g. "attachments/3/12/1234-file.pdf"
+ * @param data        File content as a Buffer
+ * @param contentType MIME type of the file
+ * @returns           { path } — the storage key to persist in the database
+ */
 export async function storagePut(
-  relKey: string,
+  filePath: string,
   data: Buffer | Uint8Array | string,
-  contentType = "application/octet-stream"
-): Promise<{ key: string; url: string }> {
-  const { baseUrl, apiKey } = getStorageConfig();
-  const key = normalizeKey(relKey);
-  const uploadUrl = buildUploadUrl(baseUrl, key);
-  const formData = toFormData(data, contentType, key.split("/").pop() ?? key);
-  const response = await fetch(uploadUrl, {
-    method: "POST",
-    headers: buildAuthHeaders(apiKey),
-    body: formData,
-  });
+  contentType = "application/octet-stream",
+  bucketName = "attachments"
+): Promise<{ key: string; path: string }> {
+  const supabase = getAdminClient();
+  const normalizedPath = filePath.replace(/^\/+/, "");
 
-  if (!response.ok) {
-    const message = await response.text().catch(() => response.statusText);
-    throw new Error(
-      `Storage upload failed (${response.status} ${response.statusText}): ${message}`
+  const { error } = await supabase.storage
+    .from(bucketName)
+    .upload(normalizedPath, data, {
+      contentType,
+      upsert: true,
+    });
+
+  if (error) {
+    console.error(
+      `[Storage] Upload failed — bucket: ${bucketName}, path: ${normalizedPath}`,
+      error
     );
+    throw new Error(`Storage upload failed: ${error.message}`);
   }
-  const url = (await response.json()).url;
-  return { key, url };
+
+  return { key: normalizedPath, path: normalizedPath };
 }
 
-export async function storageGet(relKey: string): Promise<{ key: string; url: string; }> {
-  const { baseUrl, apiKey } = getStorageConfig();
-  const key = normalizeKey(relKey);
-  return {
-    key,
-    url: await buildDownloadUrl(baseUrl, key, apiKey),
-  };
+// ─── Signed URL Generation ─────────────────────────────────────────────────
+
+/**
+ * Generates a short-lived signed URL for a file in a private bucket.
+ * Should be called at request time — never stored in the database.
+ *
+ * @param jwt         The caller's Supabase access token (from Authorization header)
+ * @param bucketName  "attachments" | "approved-letters"
+ * @param filePath    The storage path (key) stored in the database
+ * @param expiresIn   Seconds until the URL expires (default: 3600 = 1 hour)
+ * @returns           { signedUrl } — a time-limited URL for the file
+ */
+export async function storageGetSignedUrl(
+  jwt: string,
+  bucketName: string,
+  filePath: string,
+  expiresIn = 3600
+): Promise<{ key: string; url: string }> {
+  // Use admin client for signed URL generation to avoid RLS issues on the server.
+  // The permission check is enforced at the tRPC procedure level before calling this.
+  const supabase = getAdminClient();
+  const normalizedPath = filePath.replace(/^\/+/, "");
+
+  const { data, error } = await supabase.storage
+    .from(bucketName)
+    .createSignedUrl(normalizedPath, expiresIn);
+
+  if (error || !data?.signedUrl) {
+    console.error(
+      `[Storage] Signed URL failed — bucket: ${bucketName}, path: ${normalizedPath}`,
+      error
+    );
+    throw new Error(`Failed to generate signed URL: ${error?.message}`);
+  }
+
+  return { key: normalizedPath, url: data.signedUrl };
+}
+
+/**
+ * @deprecated Legacy alias — kept for backwards compatibility during migration.
+ * Callers should be updated to use storagePut() with explicit bucketName.
+ */
+export async function storageGet(
+  relKey: string
+): Promise<{ key: string; url: string }> {
+  throw new Error(
+    "[Storage] storageGet() is no longer supported. Use storageGetSignedUrl() instead."
+  );
 }

@@ -377,18 +377,18 @@ export const appRouter = router({
         const letter = await getLetterRequestById(input.letterId);
         if (!letter || letter.userId !== ctx.user.id) throw new TRPCError({ code: "NOT_FOUND" });
         const buffer = Buffer.from(input.base64Data, "base64");
-        const key = `attachments/${ctx.user.id}/${input.letterId}/${Date.now()}-${input.fileName}`;
-        const { url } = await storagePut(key, buffer, input.mimeType);
+        const filePath = `attachments/${ctx.user.id}/${input.letterId}/${Date.now()}-${input.fileName}`;
+        // Upload to private Supabase Storage bucket — returns path only, no public URL
+        const { path } = await storagePut(filePath, buffer, input.mimeType, "attachments");
         await createAttachment({
           letterRequestId: input.letterId,
           uploadedByUserId: ctx.user.id,
-          storagePath: key,
-          storageUrl: url,
+          storagePath: path,
           fileName: input.fileName,
           mimeType: input.mimeType,
           sizeBytes: buffer.length,
         });
-        return { url, key };
+        return { path };
       }),
   }),
 
@@ -517,8 +517,8 @@ export const appRouter = router({
             noteText: input.userVisibleNote, noteVisibility: "user_visible",
           });
         }
-        // ── Generate PDF, upload to S3, store URL ──
-        let pdfUrl: string | undefined;
+        // ── Generate PDF, upload to Supabase private storage, store path ──
+        let pdfStoragePath: string | undefined;
         try {
           const pdfResult = await generateAndUploadApprovedPdf({
             letterId: input.letterId,
@@ -531,29 +531,30 @@ export const appRouter = router({
             jurisdictionCountry: letter.jurisdictionCountry,
             intakeJson: letter.intakeJson as any,
           });
-          pdfUrl = pdfResult.pdfUrl;
-          await updateLetterPdfUrl(input.letterId, pdfUrl);
-          console.log(`[Approve] PDF generated for letter #${input.letterId}: ${pdfUrl}`);
+          pdfStoragePath = pdfResult.pdfKey;
+          await updateLetterPdfUrl(input.letterId, pdfStoragePath);
+          console.log(`[Approve] PDF stored at path: ${pdfStoragePath} for letter #${input.letterId}`);
         } catch (pdfErr) {
           console.error(`[Approve] PDF generation failed for letter #${input.letterId}:`, pdfErr);
           // Non-blocking: approval still succeeds even if PDF fails
         }
-        // ── Notify subscriber with PDF link ──
+        // ── Notify subscriber (email contains in-app link, not a direct PDF URL) ──
         try {
           const appUrl = getAppUrl(ctx.req);
           const subscriber = await getUserById(letter.userId);
           if (subscriber?.email) {
-            await sendLetterApprovedEmail({ to: subscriber.email, name: subscriber.name ?? "Subscriber", subject: letter.subject, letterId: input.letterId, appUrl, pdfUrl });
+            // No pdfUrl in email — subscriber downloads via the secure in-app signed URL flow
+            await sendLetterApprovedEmail({ to: subscriber.email, name: subscriber.name ?? "Subscriber", subject: letter.subject, letterId: input.letterId, appUrl, pdfUrl: undefined });
           }
           await createNotification({
             userId: letter.userId,
             type: "letter_approved",
             title: "Your letter has been approved!",
-            body: `Your letter "${letter.subject}" is ready to download.${pdfUrl ? " A PDF copy is available." : ""}`,
+            body: `Your letter "${letter.subject}" is ready to download.${pdfStoragePath ? " A PDF copy is available in your account." : ""}`,
             link: `/letters/${input.letterId}`,
           });
         } catch (err) { console.error("[Notify] Failed:", err); }
-        return { success: true, versionId, pdfUrl };
+        return { success: true, versionId };
       }),
 
     reject: attorneyProcedure

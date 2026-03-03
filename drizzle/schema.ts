@@ -129,7 +129,7 @@ export const letterRequests = pgTable("letter_requests", {
   assignedReviewerId: integer("assigned_reviewer_id"),
   currentAiDraftVersionId: integer("current_ai_draft_version_id"),
   currentFinalVersionId: integer("current_final_version_id"),
-  pdfUrl: text("pdf_url"),
+  pdfStoragePath: varchar("pdf_storage_path", { length: 1000 }),
   archivedAt: timestamp("archived_at", { withTimezone: true }),
   priority: priorityEnum("priority").default("normal").notNull(),
   lastStatusChangedAt: timestamp("last_status_changed_at", { withTimezone: true }).defaultNow(),
@@ -240,7 +240,7 @@ export const attachments = pgTable("attachments", {
   letterRequestId: integer("letter_request_id").notNull(),
   uploadedByUserId: integer("uploaded_by_user_id").notNull(),
   storagePath: varchar("storage_path", { length: 1000 }).notNull(),
-  storageUrl: varchar("storage_url", { length: 2000 }),
+  // storageUrl removed: private buckets use signed URLs generated on demand
   fileName: varchar("file_name", { length: 500 }).notNull(),
   mimeType: varchar("mime_type", { length: 200 }),
   sizeBytes: bigint("size_bytes", { mode: "number" }),

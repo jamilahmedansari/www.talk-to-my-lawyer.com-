@@ -180,7 +180,7 @@ export async function getLetterRequestSafeForSubscriber(id: number, userId: numb
     status: letterRequests.status,
     priority: letterRequests.priority,
     currentFinalVersionId: letterRequests.currentFinalVersionId,
-    pdfUrl: letterRequests.pdfUrl,
+    pdfStoragePath: letterRequests.pdfStoragePath,
     lastStatusChangedAt: letterRequests.lastStatusChangedAt,
     createdAt: letterRequests.createdAt,
     updatedAt: letterRequests.updatedAt,
@@ -247,10 +247,15 @@ export async function claimLetterForReview(letterId: number, reviewerId: number)
   }).where(eq(letterRequests.id, letterId));
 }
 
-export async function updateLetterPdfUrl(id: number, pdfUrl: string) {
+export async function updateLetterPdfStoragePath(id: number, pdfStoragePath: string) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.update(letterRequests).set({ pdfUrl, updatedAt: new Date() } as any).where(eq(letterRequests.id, id));
+  await db.update(letterRequests).set({ pdfStoragePath, updatedAt: new Date() } as any).where(eq(letterRequests.id, id));
+}
+
+/** @deprecated Use updateLetterPdfStoragePath instead */
+export async function updateLetterPdfUrl(id: number, pdfStoragePath: string) {
+  return updateLetterPdfStoragePath(id, pdfStoragePath);
 }
 
 export async function archiveLetterRequest(id: number, userId: number) {
@@ -517,7 +522,6 @@ export async function createAttachment(data: {
   letterRequestId: number;
   uploadedByUserId: number;
   storagePath: string;
-  storageUrl?: string;
   fileName: string;
   mimeType?: string;
   sizeBytes?: number;
@@ -532,6 +536,13 @@ export async function getAttachmentsByLetterId(letterRequestId: number) {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(attachments).where(eq(attachments.letterRequestId, letterRequestId)).orderBy(attachments.createdAt);
+}
+
+export async function getAttachmentById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(attachments).where(eq(attachments.id, id)).limit(1);
+  return result[0];
 }
 
 // ═══════════════════════════════════════════════════════

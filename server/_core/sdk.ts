@@ -14,6 +14,9 @@ import type {
   GetUserInfoWithJwtRequest,
   GetUserInfoWithJwtResponse,
 } from "./types/manusTypes";
+// Legacy Manus OAuth fields removed from ENV — read directly from process.env for backward compat
+const _OAUTH_SERVER_URL = process.env.OAUTH_SERVER_URL ?? "";
+const _APP_ID = process.env.VITE_APP_ID ?? "";
 // Utility function
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.length > 0;
@@ -30,8 +33,8 @@ const GET_USER_INFO_WITH_JWT_PATH = `/webdev.v1.WebDevAuthPublicService/GetUserI
 
 class OAuthService {
   constructor(private client: ReturnType<typeof axios.create>) {
-    console.log("[OAuth] Initialized with baseURL:", ENV.oAuthServerUrl);
-    if (!ENV.oAuthServerUrl) {
+    console.log("[OAuth] Initialized with baseURL:", _OAUTH_SERVER_URL);
+    if (!_OAUTH_SERVER_URL) {
       console.error(
         "[OAuth] ERROR: OAUTH_SERVER_URL is not configured! Set OAUTH_SERVER_URL environment variable."
       );
@@ -48,7 +51,7 @@ class OAuthService {
     state: string
   ): Promise<ExchangeTokenResponse> {
     const payload: ExchangeTokenRequest = {
-      clientId: ENV.appId,
+      clientId: _APP_ID,
       grantType: "authorization_code",
       code,
       redirectUri: this.decodeState(state),
@@ -78,7 +81,7 @@ class OAuthService {
 
 const createOAuthHttpClient = (): AxiosInstance =>
   axios.create({
-    baseURL: ENV.oAuthServerUrl,
+    baseURL: _OAUTH_SERVER_URL,
     timeout: AXIOS_TIMEOUT_MS,
   });
 
@@ -171,7 +174,7 @@ class SDKServer {
     return this.signSession(
       {
         openId,
-        appId: ENV.appId,
+        appId: _APP_ID,
         name: options.name || "",
       },
       options
@@ -237,7 +240,7 @@ class SDKServer {
   ): Promise<GetUserInfoWithJwtResponse> {
     const payload: GetUserInfoWithJwtRequest = {
       jwtToken,
-      projectId: ENV.appId,
+      projectId: _APP_ID,
     };
 
     const { data } = await this.client.post<GetUserInfoWithJwtResponse>(
