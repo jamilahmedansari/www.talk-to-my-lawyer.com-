@@ -70,9 +70,9 @@ The letter review pipeline handles everything that happens after the AI generate
 
 | Procedure | Condition | Transition |
 |-----------|-----------|------------|
-| `billing.freeUnlock` | First letter, no prior unlocked letters | `generated_locked` → `pending_review` |
+| `billing.freeUnlock` | First letter, no prior unlocked letters | `generated_locked` or `generated_unlocked` → `pending_review` |
 | `billing.payToUnlock` | Creates $200 Stripe checkout | Stripe webhook → `pending_review` |
-| `billing.payTrialReview` | Creates $50 Stripe checkout | Stripe webhook → `pending_review` |
+| `billing.createAttorneyReviewCheckout` | Creates $100 Stripe checkout for free-trial letters | Stripe webhook → `pending_review` |
 
 The Stripe webhook handler (`server/stripeWebhook.ts`) processes `checkout.session.completed` events and transitions the letter status.
 
@@ -93,7 +93,7 @@ All review procedures require `attorneyProcedure` guard (role: `attorney` or `ad
 What happens:
 1. Verify letter exists and is in `pending_review` status
 2. Call `claimLetterForReview(letterId, reviewerId)` — idempotent, rejects if already claimed by another
-3. Log review action: `claimed`
+3. Log review action: `claimed_for_review`
 4. Send email to subscriber: "An attorney is reviewing your letter"
 5. Create in-app notification for subscriber
 

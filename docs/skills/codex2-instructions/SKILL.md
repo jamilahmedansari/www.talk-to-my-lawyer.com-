@@ -155,21 +155,16 @@ STAGE 3: Claude claude-opus-4-5 (120s timeout)
 ```
 
 ### Status Machine (FOLLOW EXACTLY)
-```
+``` 
 submitted ──→ researching ──→ drafting ──→ generated_locked
-    ▲                                           │
-    │                                    (payment)
-    │                                           ▼
-    │                                    pending_review
-    │                                           │
-    │                                    (attorney claim)
-    │                                           ▼
-    │                                    under_review
-    │                                     ╱    │    ╲
-    │                              approved rejected needs_changes
-    │                                                    │
-    └────────────────────────────────────────────────────┘
-                    (re-trigger from research/draft)
+                                  │
+                                  └──────────────→ generated_unlocked
+                                                        │
+                                                        ├─→ pending_review
+                                                        └─→ upsell_dismissed
+generated_locked ─────────────────────────────────────→ pending_review
+pending_review ──→ under_review ──→ approved | rejected | needs_changes
+needs_changes ──→ researching | drafting
 ```
 
 **Valid transitions** (defined in `shared/types.ts`):
@@ -177,8 +172,10 @@ submitted ──→ researching ──→ drafting ──→ generated_locked
 const ALLOWED_TRANSITIONS = {
   submitted: ['researching'],
   researching: ['drafting'],
-  drafting: ['generated_locked'],
+  drafting: ['generated_locked', 'generated_unlocked'],
   generated_locked: ['pending_review'],
+  generated_unlocked: ['pending_review', 'upsell_dismissed'],
+  upsell_dismissed: [],
   pending_review: ['under_review'],
   under_review: ['approved', 'rejected', 'needs_changes'],
   needs_changes: ['researching', 'drafting']
@@ -286,13 +283,18 @@ return { success: true }
 // FREE UNLOCK (first letter only)
 billing.freeUnlock({ letterId })
   Conditions: User has 0 previously unlocked letters
-  Transition: generated_locked → pending_review
+  Transition: generated_locked OR generated_unlocked → pending_review
 
 // PAY-PER-LETTER ($200)
 billing.payToUnlock({ letterId, discountCode? })
   Creates Stripe checkout session
   Webhook: checkout.session.completed → pending_review
   Optionally: Process discount code, create commission
+
+// ATTORNEY REVIEW UPSELL (free-trial letters only, $100)
+billing.createAttorneyReviewCheckout({ letterId })
+  Requires letter status generated_unlocked
+  Webhook: checkout.session.completed → pending_review
 
 // SUBSCRIPTION BYPASS
 billing.checkPaywallStatus()

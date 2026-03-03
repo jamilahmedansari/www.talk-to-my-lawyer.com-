@@ -16,7 +16,7 @@ All actions logged via `logReviewAction()` in `server/db.ts`:
 
 | Action | Actor | Visibility | When |
 |--------|-------|-----------|------|
-| `claimed` | attorney | internal | Attorney claims letter from queue |
+| `claimed_for_review` | attorney | internal | Attorney claims letter from queue |
 | `attorney_edit_saved` | attorney | internal | Attorney saves inline edit |
 | `approved` | attorney | internal | Attorney approves letter |
 | `attorney_note` | attorney | user_visible | Attorney adds note visible to subscriber |

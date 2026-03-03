@@ -17,7 +17,7 @@
 **File:** `server/pdfGenerator.ts`
 **Library:** PDFKit (Node.js)
 **Trigger:** `review.approve` procedure
-**Output:** Professional legal letter PDF uploaded to S3
+**Output:** Professional legal letter PDF uploaded to private Supabase Storage bucket
 
 ---
 
@@ -39,8 +39,8 @@ generateAndUploadApprovedPdf({
     ├─ generatePdfBuffer() → PDFKit in-memory
     │   └─ Returns Buffer
     │
-    ├─ storagePut(fileKey, buffer, "application/pdf")
-    │   └─ Uploads to S3 bucket
+    ├─ storagePut(fileKey, buffer, "application/pdf", "approved-letters")
+    │   └─ Uploads to Supabase Storage (private bucket)
     │   └─ Returns { url }
     │
     ├─ updateLetterPdfUrl(letterId, url)

@@ -159,13 +159,11 @@ Stage 3: Anthropic Claude (claude-opus-4-5) → Final Assembly (120s timeout)
 ### Status Machine
 
 ```
-submitted → researching → drafting → generated_lock
-                                            ↓ (payment)
-                                     pending_review
-                                            ↓ (claim)
-                                     under_review
-                                      ↙  ↓  ↘
-                               approved rejected needs_changes
+submitted → researching → drafting → generated_locked
+                               ↘
+                                generated_unlocked → pending_review | upsell_dismissed
+generated_locked → pending_review → under_review → approved | rejected | needs_changes
+needs_changes → researching | drafting
 ```
 
 ### Key Pipeline Files

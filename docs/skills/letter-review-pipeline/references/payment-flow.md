@@ -6,7 +6,7 @@
 - [Paywall States](#paywall-states)
 - [Free Unlock Flow](#free-unlock-flow)
 - [Pay-Per-Letter Flow](#pay-per-letter-flow)
-- [Trial Review Flow](#trial-review-flow)
+- [Trial Review Upsell Flow](#trial-review-upsell-flow)
 - [Subscription Bypass](#subscription-bypass)
 - [Stripe Webhook Processing](#stripe-webhook-processing)
 - [Discount Codes & Affiliate](#discount-codes--affiliate)
@@ -92,20 +92,20 @@ Stripe webhook: checkout.session.completed
 
 ---
 
-## Trial Review Flow
+## Trial Review Upsell Flow
 
-**Procedure:** `billing.payTrialReview`
+**Procedure:** `billing.createAttorneyReviewCheckout`
 **Guard:** `subscriberProcedure`
-**Price:** $50
+**Price:** $100
 
 ```
-Subscriber clicks "Pay $50 for Attorney Review"
+Subscriber clicks "Pay $100 for Attorney Review"
     │
     ▼
-billing.payTrialReview({ letterId, discountCode? })
+billing.createAttorneyReviewCheckout({ letterId })
     │
     ├─ Verify letter is generated_unlocked
-    ├─ Create Stripe checkout session ($50)
+    ├─ Create Stripe checkout session ($100)
     │
     └─ Return { sessionId, url } → redirect to Stripe
     

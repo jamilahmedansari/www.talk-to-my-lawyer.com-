@@ -133,7 +133,7 @@ See `references/data-shapes.md` → DraftOutput
 2. Instruct Claude to polish, format, and finalize the letter
 3. Create `letter_version` record (type: `ai_draft`) with final content
 4. Update `letter_requests.currentAiDraftVersionId` pointer
-5. Status transition: `drafting` → `generated_locked`
+5. Status transition: `drafting` → `generated_locked` or `generated_unlocked` (free-trial path)
 6. Send "letter ready" email to subscriber
 7. Create `workflow_job` record for the stage
 
@@ -141,19 +141,14 @@ See `references/data-shapes.md` → DraftOutput
 
 ```
 submitted ──→ researching ──→ drafting ──→ generated_locked
-    ▲                                           │
-    │                                    (payment unlock)
-    │                                           ▼
-    │                                    pending_review
-    │                                           │
-    │                                    (attorney claims)
-    │                                           ▼
-    │                                    under_review
-    │                                     ╱    │    ╲
-    │                              approved rejected needs_changes
-    │                                                    │
-    └────────────────────────────────────────────────────┘
-                    (re-trigger from researching or drafting)
+                                  │
+                                  └──────────────→ generated_unlocked
+                                                        │
+                                                        ├─→ pending_review
+                                                        └─→ upsell_dismissed
+generated_locked ─────────────────────────────────────→ pending_review
+pending_review ──→ under_review ──→ approved | rejected | needs_changes
+needs_changes ──→ researching | drafting
 ```
 
 Valid transitions defined in `shared/types.ts` → `ALLOWED_TRANSITIONS`.

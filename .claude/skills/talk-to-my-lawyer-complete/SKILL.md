@@ -100,19 +100,14 @@ Subscriber submits intake form
 
 ```
 submitted ──→ researching ──→ drafting ──→ generated_locked
-    ▲                                           │
-    │                                    (payment unlock)
-    │                                           ▼
-    │                                    pending_review
-    │                                           │
-    │                                    (attorney claims)
-    │                                           ▼
-    │                                    under_review
-    │                                     ╱    │    ╲
-    │                              approved rejected needs_changes
-    │                                                    │
-    └────────────────────────────────────────────────────┘
-                    (re-trigger from researching or drafting)
+                                  │
+                                  └──────────────→ generated_unlocked
+                                                        │
+                                                        ├─→ pending_review
+                                                        └─→ upsell_dismissed
+generated_locked ─────────────────────────────────────→ pending_review
+pending_review ──→ under_review ──→ approved | rejected | needs_changes
+needs_changes ──→ researching | drafting
 ```
 
 Allowed transitions defined in `shared/types.ts` → `ALLOWED_TRANSITIONS`.
@@ -248,7 +243,7 @@ generated_locked (AI draft complete)
 |------|-------|---------|
 | Free Trial | $0 | 1 letter (first only) |
 | Pay-Per-Letter | $200 | 1 letter |
-| Trial Review | $50 | Attorney review only |
+| Attorney Review Upsell | $100 | Optional review for free-trial letters (`generated_unlocked`) |
 | Monthly Basic | $499/month | 4 letters |
 | Monthly Pro | $699/month | 8 letters |
 
@@ -258,7 +253,7 @@ generated_locked (AI draft complete)
 ```typescript
 billing.freeUnlock({ letterId })
   → Verify first letter (no prior unlocks)
-  → Transition: generated_locked → pending_review
+  → Transition: generated_locked OR generated_unlocked → pending_review
   → Log review action: free_unlock
   → Send emails
 ```

@@ -22,7 +22,8 @@ Defined in `drizzle/schema.ts` → `letterStatusEnum`:
 | `researching` | Researching | Stage 1 in progress (Perplexity research) |
 | `drafting` | Drafting | Stage 2 in progress (Claude drafting) |
 | `generated_locked` | Draft Ready | Pipeline complete, awaiting payment |
-| `generated_unlocked` | Draft Ready | Legacy status (backward compat only) |
+| `generated_unlocked` | Free Draft Ready | First-letter free-trial path (subscriber can keep copy or pay for review upsell) |
+| `upsell_dismissed` | Free Copy Kept | Subscriber dismissed attorney-review upsell |
 | `pending_review` | Awaiting Review | Paid/free-unlocked, waiting for attorney |
 | `under_review` | Under Review | Attorney has claimed and is reviewing |
 | `needs_changes` | Changes Requested | Attorney requested changes |
@@ -39,8 +40,10 @@ Source: `shared/types.ts` → `ALLOWED_TRANSITIONS`
 {
   submitted:        ["researching"],
   researching:      ["drafting"],
-  drafting:         ["generated_locked"],
+  drafting:         ["generated_locked", "generated_unlocked"],
   generated_locked: ["pending_review"],
+  generated_unlocked: ["pending_review", "upsell_dismissed"],
+  upsell_dismissed: [],
   pending_review:   ["under_review"],
   under_review:     ["approved", "rejected", "needs_changes"],
   needs_changes:    ["researching", "drafting"],
@@ -57,7 +60,7 @@ Source: `shared/types.ts` → `ALLOWED_TRANSITIONS`
 ```
 submitted ──[runLetterPipeline]──→ researching
     ──[Stage 1 complete]──→ drafting
-    ──[Stage 3 complete]──→ generated_locked
+    ──[Stage 3 complete]──→ generated_locked OR generated_unlocked
 ```
 
 ### Failure Path
@@ -88,9 +91,9 @@ Conditions: User has zero previously unlocked letters.
 generated_locked ──[billing.payToUnlock → Stripe checkout]──→ (Stripe webhook) ──→ pending_review
 ```
 
-### Trial Review ($50)
+### Attorney Review Upsell ($100 on free-trial letters)
 ```
-generated_unlocked ──[billing.payTrialReview → Stripe checkout]──→ (Stripe webhook) ──→ pending_review
+generated_unlocked ──[billing.createAttorneyReviewCheckout → Stripe checkout]──→ (Stripe webhook) ──→ pending_review
 ```
 
 ### Subscription (Monthly/Annual)
