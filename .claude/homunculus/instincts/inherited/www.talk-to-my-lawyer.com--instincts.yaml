@@ -1,0 +1,827 @@
+# Instincts generated from https://github.com/jamilahmedansari/www.talk-to-my-lawyer.com-
+# Generated: 2026-03-03T05:33:25.074Z
+# Version: 2.0
+
+---
+id: www.talk-to-my-lawyer.com--commit-length
+trigger: "when writing a commit message"
+confidence: 0.6
+domain: git
+source: repo-analysis
+source_repo: https://github.com/jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Commit Length
+
+## Action
+
+Write detailed commit messages (aim for 50-100 characters for first line)
+
+## Evidence
+
+- Average commit message length: 231 chars
+- Based on 116 commits
+
+---
+id: www.talk-to-my-lawyer.com--naming-files
+trigger: "when creating a new file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Naming Files
+
+## Action
+
+Use camelCase naming convention
+
+## Evidence
+
+- Analyzed file naming patterns in repository
+- Dominant pattern: camelCase
+
+---
+id: www.talk-to-my-lawyer.com--import-alias
+trigger: "when importing modules"
+confidence: 0.85
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Import Alias
+
+## Action
+
+Use path aliases (@/, ~/) instead of relative imports
+
+## Evidence
+
+- Import analysis shows alias pattern
+- Example: import { x } from '@/lib/x'
+
+---
+id: www.talk-to-my-lawyer.com--export-style
+trigger: "when exporting from a module"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Export Style
+
+## Action
+
+Prefer mixed exports
+
+## Evidence
+
+- Export pattern analysis
+- Dominant style: mixed
+
+---
+id: www.talk-to-my-lawyer.com--arch-type-based
+trigger: "when adding new code"
+confidence: 0.8
+domain: architecture
+source: repo-analysis
+source_repo: https://github.com/jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Arch Type Based
+
+## Action
+
+Place code in the appropriate type folder (components/, services/, utils/, etc.)
+
+## Evidence
+
+- Type-based module organization detected
+- Folders: 
+
+---
+id: www.talk-to-my-lawyer.com--test-framework
+trigger: "when writing tests"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Test Framework
+
+## Action
+
+Use vitest as the test framework
+
+## Evidence
+
+- Test framework detected: vitest
+- File pattern: *.test.ts
+
+---
+id: www.talk-to-my-lawyer.com--test-naming
+trigger: "when creating a test file"
+confidence: 0.85
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Test Naming
+
+## Action
+
+Name test files using the pattern: *.test.ts
+
+## Evidence
+
+- File pattern: *.test.ts
+- Consistent across test files
+
+---
+id: www.talk-to-my-lawyer.com--test-mocking
+trigger: "when mocking dependencies in tests"
+confidence: 0.75
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Test Mocking
+
+## Action
+
+Use vi.mock for mocking
+
+## Evidence
+
+- Mocking pattern detected: vi.mock
+- Consistent across test files
+
+---
+id: www.talk-to-my-lawyer.com--test-types
+trigger: "when planning tests for a feature"
+confidence: 0.7
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Test Types
+
+## Action
+
+Write unit, integration tests to match project standards
+
+## Evidence
+
+- Test types detected: unit, integration
+- Coverage config: no
+
+---
+id: www.talk-to-my-lawyer.com--workflow-database-migration
+trigger: "when modifying the database schema or adding tables"
+confidence: 0.75
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Workflow Database Migration
+
+## Action
+
+Follow the database-migration workflow:
+1. Create migration file
+2. Update schema definitions
+3. Generate/update types
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~5x per month
+- Files: migrations/*, **/schema.*, **/types.ts
+
+---
+id: www.talk-to-my-lawyer.com--workflow-feature-development
+trigger: "when implementing a new feature"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Workflow Feature Development
+
+## Action
+
+Follow the feature-development workflow:
+1. Add feature implementation
+2. Add tests for feature
+3. Update documentation
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~11x per month
+- Files: client/src/*, client/src/components/*, client/src/components/shared/*
+
+---
+id: www.talk-to-my-lawyer.com--workflow-test-driven-development
+trigger: "when adding new functionality"
+confidence: 0.65
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Workflow Test Driven Development
+
+## Action
+
+Follow the test-driven-development workflow:
+1. Write failing test
+2. Implement code to pass test
+3. Refactor if needed
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~3x per month
+- Files: **/*.test.*, **/*.spec.*, src/**/*
+
+---
+id: www.talk-to-my-lawyer.com--workflow-refactoring
+trigger: "when refactoring code"
+confidence: 0.75
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Workflow Refactoring
+
+## Action
+
+Follow the refactoring workflow:
+1. Ensure tests pass before refactor
+2. Refactor code structure
+3. Verify tests still pass
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~5x per month
+- Files: src/**/*
+
+---
+id: www.talk-to-my-lawyer.com--workflow-major-feature-integration
+trigger: "when doing major feature integration"
+confidence: 0.65
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Workflow Major Feature Integration
+
+## Action
+
+Follow the major-feature-integration workflow:
+1. Create/modify database migration
+2. Update schema.ts
+3. Implement server-side logic in routers
+4. Update frontend components
+5. Add comprehensive test suite
+6. Update documentation
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~3x per month
+- Files: drizzle/*.sql, drizzle/schema.ts, server/routers/*.ts
+
+---
+id: www.talk-to-my-lawyer.com--workflow-router-refactoring
+trigger: "when doing router refactoring"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Workflow Router Refactoring
+
+## Action
+
+Follow the router-refactoring workflow:
+1. Create feature-specific router files
+2. Extract shared guards to _guards.ts
+3. Create router index file
+4. Update main routers.ts as re-export shim
+5. Preserve all import paths
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: server/routers.ts, server/routers/*.ts, server/routers/_guards.ts
+
+---
+id: www.talk-to-my-lawyer.com--workflow-phase-development-cycle
+trigger: "when doing phase development cycle"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Workflow Phase Development Cycle
+
+## Action
+
+Follow the phase-development-cycle workflow:
+1. Implement phase features
+2. Add phase-specific test file
+3. Create checkpoint commit with summary
+4. Update todo.md with progress
+5. Ensure all tests pass
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~8x per month
+- Files: server/phase*.test.ts, todo.md, various implementation files
+
+---
+id: www.talk-to-my-lawyer.com--workflow-documentation-update
+trigger: "when doing documentation update"
+confidence: 0.7
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Workflow Documentation Update
+
+## Action
+
+Follow the documentation-update workflow:
+1. Create/update main documentation files
+2. Add skill-specific documentation
+3. Update README with new features
+4. Create reference files for complex workflows
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~4x per month
+- Files: README.md, ARCHITECTURE.md, CONTRIBUTING.md
+
+---
+id: www.talk-to-my-lawyer.com--workflow-frontend-component-updates
+trigger: "when doing frontend component updates"
+confidence: 0.75
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Workflow Frontend Component Updates
+
+## Action
+
+Follow the frontend-component-updates workflow:
+1. Identify affected components
+2. Update page components consistently
+3. Update shared components and layouts
+4. Ensure responsive design
+5. Test across user roles
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~5x per month
+- Files: client/src/pages/**/*.tsx, client/src/components/**/*.tsx, client/src/App.tsx
+
+---
+id: www.talk-to-my-lawyer.com--workflow-merge-pull-request
+trigger: "when doing merge pull request"
+confidence: 0.8
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Workflow Merge Pull Request
+
+## Action
+
+Follow the merge-pull-request workflow:
+1. Merge feature branch
+2. Update Claude/AI metadata files
+3. Sync with main branch changes
+4. Clean up branch references
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~6x per month
+- Files: .claude/**/*.yaml, .claude/**/*.md
+
+---
+id: www.talk-to-my-lawyer.com--camelcase-files
+trigger: "When creating new TypeScript files"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Camelcase Files
+
+## Action
+
+Use camelCase naming for file names
+
+## Evidence
+
+- Pattern in commonFolders: client, server, drizzle
+- TypeScript language with camelCase file convention
+
+---
+id: www.talk-to-my-lawyer.com--pascalcase-classes
+trigger: "When defining React components or TypeScript classes"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Pascalcase Classes
+
+## Action
+
+Use PascalCase naming convention
+
+## Evidence
+
+- namingConventions.classes: PascalCase
+- React component files in client/src/components/
+
+---
+id: www.talk-to-my-lawyer.com--screaming-snake-constants
+trigger: "When defining constant values"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Screaming Snake Constants
+
+## Action
+
+Use SCREAMING_SNAKE_CASE for constants
+
+## Evidence
+
+- namingConventions.constants: SCREAMING_SNAKE_CASE
+- TypeScript codebase pattern
+
+---
+id: www.talk-to-my-lawyer.com--alias-imports
+trigger: "When importing modules"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Alias Imports
+
+## Action
+
+Use alias-style imports
+
+## Evidence
+
+- importStyle: alias in codeStyle
+- TypeScript configuration with path mapping
+
+---
+id: www.talk-to-my-lawyer.com--vitest-testing
+trigger: "When writing unit or integration tests"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Vitest Testing
+
+## Action
+
+Use vitest framework with *.test.ts file pattern
+
+## Evidence
+
+- testing.framework: vitest
+- filePattern: *.test.ts
+- vitest.config.ts in config files
+
+---
+id: www.talk-to-my-lawyer.com--vi-mock-style
+trigger: "When mocking dependencies in tests"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Vi Mock Style
+
+## Action
+
+Use vi.mock() for mocking
+
+## Evidence
+
+- mockingStyle: vi.mock
+- vitest framework usage
+
+---
+id: www.talk-to-my-lawyer.com--checkpoint-commits
+trigger: "When completing development phases"
+confidence: 0.9
+domain: git
+source: repo-analysis
+source_repo: jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Checkpoint Commits
+
+## Action
+
+Create checkpoint commits with 'Checkpoint: Phase X:' prefix and detailed summary
+
+## Evidence
+
+- Checkpoint: Phase 85: Sentry Alert Rules Configuration.
+- Checkpoint: Phase 81: Removed all MySQL/TiDB references
+- phase-development-cycle workflow frequency: 8
+
+---
+id: www.talk-to-my-lawyer.com--feat-prefix-commits
+trigger: "When implementing new features"
+confidence: 0.8
+domain: git
+source: repo-analysis
+source_repo: jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Feat Prefix Commits
+
+## Action
+
+Use 'feat:' prefix in commit messages
+
+## Evidence
+
+- feat: migrate file storage to Supabase private buckets
+- feat: production-ready fixes across all roles
+- feat in commit prefixes
+
+---
+id: www.talk-to-my-lawyer.com--refactor-prefix-commits
+trigger: "When restructuring code without changing functionality"
+confidence: 0.8
+domain: git
+source: repo-analysis
+source_repo: jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Refactor Prefix Commits
+
+## Action
+
+Use 'refactor:' prefix in commit messages
+
+## Evidence
+
+- refactor: split monolithic routers.ts into 9 feature modules
+- refactor: remove 30 legacy test files
+
+---
+id: www.talk-to-my-lawyer.com--docs-prefix-commits
+trigger: "When updating documentation"
+confidence: 0.8
+domain: git
+source: repo-analysis
+source_repo: jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Docs Prefix Commits
+
+## Action
+
+Use 'docs:' prefix in commit messages
+
+## Evidence
+
+- docs: update README with comprehensive project overview
+- docs: add letter-generation-pipeline
+- docs in commit prefixes
+
+---
+id: www.talk-to-my-lawyer.com--database-migration-sequence
+trigger: "When making database schema changes"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Database Migration Sequence
+
+## Action
+
+Create migration file, update schema definitions, then generate/update types
+
+## Evidence
+
+- database-migration workflow frequency: 5
+- Files: migrations/*, **/schema.*, **/types.ts
+- drizzle.config.ts in config
+
+---
+id: www.talk-to-my-lawyer.com--feature-test-docs-sequence
+trigger: "When developing standard features"
+confidence: 0.8
+domain: workflow
+source: repo-analysis
+source_repo: jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Feature Test Docs Sequence
+
+## Action
+
+Add feature implementation, add tests, then update documentation
+
+## Evidence
+
+- feature-development workflow frequency: 11
+- commitSequence includes tests and docs
+- client/src/*, **/*.test.* in filesInvolved
+
+---
+id: www.talk-to-my-lawyer.com--tdd-workflow
+trigger: "When practicing test-driven development"
+confidence: 0.7
+domain: workflow
+source: repo-analysis
+source_repo: jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Tdd Workflow
+
+## Action
+
+Write failing test first, implement code to pass, then refactor
+
+## Evidence
+
+- test-driven-development workflow frequency: 3
+- Write failing test → Implement code → Refactor sequence
+
+---
+id: www.talk-to-my-lawyer.com--router-split-pattern
+trigger: "When routers.ts becomes monolithic"
+confidence: 0.9
+domain: architecture
+source: repo-analysis
+source_repo: jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Router Split Pattern
+
+## Action
+
+Extract feature-specific routers with shared _guards.ts and index.ts re-export
+
+## Evidence
+
+- router-refactoring workflow
+- refactor: split monolithic routers.ts into 9 feature modules
+- server/routers/*.ts pattern
+
+---
+id: www.talk-to-my-lawyer.com--error-boundaries
+trigger: "When handling errors in React components"
+confidence: 0.8
+domain: architecture
+source: repo-analysis
+source_repo: jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Error Boundaries
+
+## Action
+
+Use error boundaries for error handling
+
+## Evidence
+
+- errorHandling.style: error-boundaries
+- errorBoundaries: true
+- React frontend with error boundary pattern
+
+---
+id: www.talk-to-my-lawyer.com--phase-test-files
+trigger: "When working in development phases"
+confidence: 0.8
+domain: workflow
+source: repo-analysis
+source_repo: jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Phase Test Files
+
+## Action
+
+Create phase-specific test files (phase*.test.ts) and update todo.md
+
+## Evidence
+
+- phase-development-cycle workflow frequency: 8
+- server/phase*.test.ts pattern
+- todo.md updates in sequence
+
+---
+id: www.talk-to-my-lawyer.com--comprehensive-docs
+trigger: "When documenting new features or workflows"
+confidence: 0.8
+domain: workflow
+source: repo-analysis
+source_repo: jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Comprehensive Docs
+
+## Action
+
+Update README, ARCHITECTURE.md, CONTRIBUTING.md and create skill-specific docs
+
+## Evidence
+
+- documentation-update workflow frequency: 4
+- docs/*.md, docs/skills/**/*.md in files
+- comprehensive project documentation
+
+---
+id: www.talk-to-my-lawyer.com--consistent-component-updates
+trigger: "When updating UI across multiple pages"
+confidence: 0.8
+domain: workflow
+source: repo-analysis
+source_repo: jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Consistent Component Updates
+
+## Action
+
+Update page components consistently, then shared components and layouts
+
+## Evidence
+
+- frontend-component-updates workflow frequency: 5
+- client/src/pages/**/*.tsx, client/src/components/**/*.tsx
+- Test across user roles in sequence
+
+---
+id: www.talk-to-my-lawyer.com--claude-metadata-updates
+trigger: "When merging feature branches"
+confidence: 0.7
+domain: workflow
+source: repo-analysis
+source_repo: jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Claude Metadata Updates
+
+## Action
+
+Update Claude/AI metadata files in .claude/ directory
+
+## Evidence
+
+- merge-pull-request workflow frequency: 6
+- .claude/**/*.yaml, .claude/**/*.md in files
+- AI-assisted development pattern
+
