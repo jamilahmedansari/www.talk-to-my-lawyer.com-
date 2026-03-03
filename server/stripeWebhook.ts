@@ -9,7 +9,7 @@ import { ENV } from "./_core/env";
 import { getStripe, activateSubscription } from "./stripe";
 import { getPlanConfig } from "./stripe-products";
 import {
-  getDb, updateLetterStatus, logReviewAction, getLetterRequestById,
+  getDb, updateLetterStatus, updateLetterStatusIfCurrent, logReviewAction, getLetterRequestById,
   getUserById, createNotification, getDiscountCodeByCode,
   incrementDiscountCodeUsage, createCommission,
 } from "./db";
@@ -85,18 +85,23 @@ export async function stripeWebhookHandler(req: Request, res: Response): Promise
             ? session.payment_intent
             : session.payment_intent?.id ?? null;
 
-          await activateSubscription({
-            userId,
-            stripeCustomerId: typeof session.customer === "string" ? session.customer : session.customer?.id ?? "",
-            stripeSubscriptionId: null,
-            stripePaymentIntentId: paymentIntentId,
-            planId,
-            status: "active",
-            currentPeriodStart: new Date(),
-            currentPeriodEnd: null, // one-time, no period end
-          });
-
-          console.log(`[StripeWebhook] Per-letter payment activated for user ${userId}`);
+          // Skip subscription record creation for the attorney review upsell —
+          // it is a one-time service fee, not a letter-unlock plan.
+          if (planId !== "attorney_review_upsell") {
+            await activateSubscription({
+              userId,
+              stripeCustomerId: typeof session.customer === "string" ? session.customer : session.customer?.id ?? "",
+              stripeSubscriptionId: null,
+              stripePaymentIntentId: paymentIntentId,
+              planId,
+              status: "active",
+              currentPeriodStart: new Date(),
+              currentPeriodEnd: null, // one-time, no period end
+            });
+            console.log(`[StripeWebhook] Per-letter payment activated for user ${userId}`);
+          } else {
+            console.log(`[StripeWebhook] Attorney review upsell payment — skipping subscription record for user ${userId}`);
+          }
 
           // ─── Letter unlock: transition generated_locked → pending_review ───
           const letterIdStr = session.metadata?.letter_id;
@@ -201,6 +206,7 @@ export async function stripeWebhookHandler(req: Request, res: Response): Promise
           }
 
           // ─── Attorney review upsell: transition generated_unlocked → pending_review ───
+          // ─── Attorney review upsell: generated_unlocked / upsell_dismissed → pending_review ───
           if (letterIdStr && unlockType === "attorney_review_upsell") {
             const letterId = parseInt(letterIdStr, 10);
             if (!isNaN(letterId)) {
@@ -215,6 +221,27 @@ export async function stripeWebhookHandler(req: Request, res: Response): Promise
                     noteText: `$100 attorney review payment received. Letter queued for attorney review. Stripe session: ${session.id}`,
                     noteVisibility: "user_visible",
                     fromStatus: "generated_unlocked",
+                // Accept both generated_unlocked and upsell_dismissed:
+                // subscriber may have dismissed the upsell card then paid anyway.
+                const validUpsellStatuses = ["generated_unlocked", "upsell_dismissed"] as const;
+                const isValidStatus = letter && (validUpsellStatuses as readonly string[]).includes(letter.status);
+                if (isValidStatus) {
+                  // Atomic compare-and-set prevents duplicate side-effects on Stripe retries.
+                  const updated = await updateLetterStatusIfCurrent(
+                    letterId,
+                    letter!.status,
+                    "pending_review"
+                  );
+                  if (!updated) {
+                    console.warn(`[StripeWebhook] Attorney review upsell: letter #${letterId} status changed concurrently — skipping duplicate processing`);
+                  } else {
+                  await logReviewAction({
+                    letterRequestId: letterId,
+                    actorType: "system",
+                    action: "attorney_review_upsell_paid",
+                    noteText: `Attorney review upsell payment received. Letter queued for review. Stripe session: ${session.id}`,
+                    noteVisibility: "user_visible",
+                    fromStatus: letter!.status as string,
                     toStatus: "pending_review",
                   });
                   await createNotification({
@@ -250,6 +277,39 @@ export async function stripeWebhookHandler(req: Request, res: Response): Promise
                   console.log(`[StripeWebhook] Attorney review upsell paid for letter #${letterId} → pending_review`);
                 } else {
                   console.warn(`[StripeWebhook] Attorney review upsell: letter #${letterId} not in generated_unlocked (status: ${letter?.status})`);
+                  const reviewTeamEmail =
+                    process.env.REVIEW_TEAM_EMAIL ??
+                    process.env.ADMIN_REVIEW_EMAIL;
+                  const FALLBACK_REVIEW_RECIPIENT =
+                    process.env.DEVOPS_EMAIL ??
+                    process.env.OWNER_EMAIL ??
+                    null;
+                  const effectiveReviewEmail = reviewTeamEmail ?? FALLBACK_REVIEW_RECIPIENT;
+                  if (!reviewTeamEmail) {
+                    console.error(
+                      "[StripeWebhook] REVIEW_TEAM_EMAIL / ADMIN_REVIEW_EMAIL not set — " +
+                      (effectiveReviewEmail
+                        ? `falling back to ${effectiveReviewEmail} for letter #${letterId}`
+                        : `no fallback configured, review-team notification NOT sent for letter #${letterId}`)
+                    );
+                  }
+                  if (effectiveReviewEmail) {
+                    const appUrl = session.success_url?.split('/letters')[0]
+                      ?? process.env.APP_BASE_URL ?? 'https://www.talk-to-my-lawyer.com';
+                    await sendNewReviewNeededEmail({
+                      to: effectiveReviewEmail,
+                      name: "Review Team",
+                      letterSubject: letter.subject,
+                      letterId,
+                      letterType: letter.letterType ?? "General",
+                      jurisdiction: letter.jurisdictionState ?? letter.jurisdictionCountry ?? "US",
+                      appUrl,
+                    }).catch(console.error);
+                  }
+                  console.log(`[StripeWebhook] Letter #${letterId} attorney review upsell paid → pending_review`);
+                  } // end if (updated)
+                } else {
+                  console.warn(`[StripeWebhook] Attorney review upsell: letter #${letterId} not in a valid upsell status (status: ${letter?.status})`);
                 }
               } catch (upsellErr) {
                 console.error(`[StripeWebhook] Failed to process attorney review upsell for letter #${letterId}:`, upsellErr);

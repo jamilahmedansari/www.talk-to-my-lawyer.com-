@@ -25,11 +25,11 @@ import {
 } from "../email";
 import {
   checkLetterSubmissionAllowed,
+  createAttorneyReviewCheckout,
   createBillingPortalSession,
   createCheckoutSession,
   createAttorneyReviewCheckout,
   createLetterUnlockCheckout,
-  createTrialReviewCheckout,
   getOrCreateStripeCustomer,
   getStripe,
   getUserSubscription,
@@ -112,33 +112,43 @@ export const billingRouter = router({
   }),
 
   /**
-   * Free unlock: transitions the first letter from generated_locked → pending_review.
-   * Validates that the user has not already used their free letter.
+   * Free unlock: transitions the first letter from generated_locked OR generated_unlocked
+   * → pending_review (no charge). Validates that the user has not already used their free letter.
+   *
+   * Accepts both statuses:
+   *   - generated_locked: legacy path (first letter was locked, admin/promo free unlock)
+   *   - generated_unlocked: new free-trial path (pipeline detected first letter)
    */
   freeUnlock: subscriberProcedure
     .input(z.object({ letterId: z.number() }))
     .mutation(async ({ ctx, input }) => {
       const letter = await getLetterRequestSafeForSubscriber(input.letterId, ctx.user.id);
       if (!letter) throw new TRPCError({ code: "NOT_FOUND", message: "Letter not found" });
-      if (letter.status !== "generated_locked") {
+      const isFreePath =
+        letter.status === "generated_locked" || letter.status === "generated_unlocked";
+      if (!isFreePath) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "Letter is not in generated_locked status",
+          message: "Letter must be in generated_locked or generated_unlocked status for free review",
         });
       }
+      const fromStatus = letter.status as "generated_locked" | "generated_unlocked";
 
       // Verify free letter eligibility
       const db = await (await import("../db")).getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
       const { letterRequests } = await import("../../drizzle/schema");
-      const { eq: eqOp, and: andOp, notInArray: notInOp } = await import("drizzle-orm");
+      const { eq: eqOp, and: andOp, notInArray: notInOp, ne: neOp } = await import("drizzle-orm");
+      // Exclude the current letter from the count so the letter being unlocked
+      // does not self-count and incorrectly block the free-unlock path.
       const paidLetters = await db
         .select({ id: letterRequests.id })
         .from(letterRequests)
         .where(
           andOp(
             eqOp(letterRequests.userId, ctx.user.id),
+            neOp(letterRequests.id, input.letterId),
             notInOp(letterRequests.status, [
               "submitted",
               "researching",
@@ -161,9 +171,11 @@ export const billingRouter = router({
         reviewerId: ctx.user.id,
         actorType: "subscriber",
         action: "free_unlock",
-        noteText: "First letter — free attorney review (promotional)",
+        noteText: fromStatus === "generated_unlocked"
+          ? "First letter — free trial attorney review"
+          : "First letter — free attorney review (promotional)",
         noteVisibility: "internal",
-        fromStatus: "generated_locked",
+        fromStatus,
         toStatus: "pending_review",
       });
 
@@ -176,54 +188,32 @@ export const billingRouter = router({
           letterId: input.letterId,
           appUrl,
         });
-        await sendNewReviewNeededEmail({
-          to: "",
-          name: "Attorney Team",
-          letterSubject: letter.subject,
-          letterId: input.letterId,
-          letterType: letter.letterType,
-          jurisdiction: letter.jurisdictionState ?? "Unknown",
-          appUrl,
-        });
+        // Notify review team — prefer REVIEW_TEAM_EMAIL, fall back to ADMIN_REVIEW_EMAIL.
+        // Log loudly if neither is set so the notification gap is visible in logs.
+        const reviewTeamEmail =
+          process.env.REVIEW_TEAM_EMAIL ??
+          process.env.ADMIN_REVIEW_EMAIL;
+        if (!reviewTeamEmail) {
+          console.error(
+            "[freeUnlock] Missing REVIEW_TEAM_EMAIL / ADMIN_REVIEW_EMAIL — " +
+            "review-queue notification NOT sent for letter #" + input.letterId
+          );
+        } else {
+          await sendNewReviewNeededEmail({
+            to: reviewTeamEmail,
+            name: "Review Team",
+            letterSubject: letter.subject,
+            letterId: input.letterId,
+            letterType: letter.letterType,
+            jurisdiction: letter.jurisdictionState ?? "Unknown",
+            appUrl,
+          });
+        }
       } catch (e) {
         console.error("[freeUnlock] Email error:", e);
       }
 
       return { success: true, free: true };
-    }),
-
-  /**
-   * Creates a Stripe checkout session for the $50 trial review (first letter).
-   * Rate limited: 10 payment attempts per hour per user.
-   */
-  payTrialReview: subscriberProcedure
-    .input(
-      z.object({
-        letterId: z.number(),
-        discountCode: z.string().optional(),
-      })
-    )
-    .mutation(async ({ ctx, input }) => {
-      await checkTrpcRateLimit("payment", `user:${ctx.user.id}`);
-
-      const letter = await getLetterRequestSafeForSubscriber(input.letterId, ctx.user.id);
-      if (!letter) throw new TRPCError({ code: "NOT_FOUND", message: "Letter not found" });
-      if (letter.status !== "generated_locked" && letter.status !== "generated_unlocked") {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Letter must be in generated_locked status to submit for review",
-        });
-      }
-
-      const origin = getAppUrl(ctx.req);
-      return createTrialReviewCheckout({
-        userId: ctx.user.id,
-        email: ctx.user.email ?? "",
-        name: ctx.user.name,
-        letterId: input.letterId,
-        origin,
-        discountCode: input.discountCode,
-      });
     }),
 
   /**
@@ -332,6 +322,11 @@ export const billingRouter = router({
    */
   payForAttorneyReview: subscriberProcedure
     .input(z.object({ letterId: z.number() }))
+   * Creates a $100 Stripe checkout for the attorney review upsell.
+   * Only available on generated_unlocked (free-trial) letters.
+   */
+  createAttorneyReviewCheckout: subscriberProcedure
+    .input(z.object({ letterId: z.number().int().positive() }))
     .mutation(async ({ ctx, input }) => {
       await checkTrpcRateLimit("payment", `user:${ctx.user.id}`);
       const letter = await getLetterRequestSafeForSubscriber(input.letterId, ctx.user.id);
@@ -340,6 +335,12 @@ export const billingRouter = router({
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "Attorney review upsell is only available for free-trial letters (generated_unlocked)",
+      // Allow both generated_unlocked (upsell not yet dismissed) and
+      // upsell_dismissed (subscriber dismissed but then changed their mind)
+      if (letter.status !== "generated_unlocked" && letter.status !== "upsell_dismissed") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Attorney review upsell only available on free-trial letters (got: ${letter.status}). Expected: generated_unlocked or upsell_dismissed`,
         });
       }
       const origin = getAppUrl(ctx.req);
@@ -350,6 +351,49 @@ export const billingRouter = router({
         letterId: input.letterId,
         origin,
       });
+    }),
+
+  /**
+   * Dismisses the attorney review upsell for a generated_unlocked letter.
+   * The letter stays in generated_unlocked — the subscriber keeps their free copy.
+   * Transitions to upsell_dismissed so the upsell card is hidden on future page loads.
+   */
+  dismissAttorneyReviewUpsell: subscriberProcedure
+    .input(z.object({ letterId: z.number().int().positive() }))
+    .mutation(async ({ ctx, input }) => {
+      const letter = await getLetterRequestSafeForSubscriber(input.letterId, ctx.user.id);
+      if (!letter) throw new TRPCError({ code: "NOT_FOUND", message: "Letter not found" });
+      if (letter.status !== "generated_unlocked") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Can only dismiss upsell on a free-trial letter",
+        });
+      }
+      // Atomic compare-and-set: only transition if status is still generated_unlocked.
+      // Prevents a TOCTOU race from overwriting a concurrent status change.
+      const { updateLetterStatusIfCurrent } = await import("../db");
+      const updated = await updateLetterStatusIfCurrent(
+        input.letterId,
+        "generated_unlocked",
+        "upsell_dismissed"
+      );
+      if (!updated) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Letter status changed before dismiss could be applied. Please refresh and try again.",
+        });
+      }
+      await logReviewAction({
+        letterRequestId: input.letterId,
+        reviewerId: ctx.user.id,
+        actorType: "subscriber",
+        action: "upsell_dismissed",
+        noteText: "Subscriber dismissed attorney review upsell — keeping free copy",
+        noteVisibility: "internal",
+        fromStatus: "generated_unlocked",
+        toStatus: "upsell_dismissed",
+      });
+      return { success: true };
     }),
 
   /** Returns the last 50 invoices for the current user from Stripe */

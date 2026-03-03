@@ -25,6 +25,7 @@ export const LETTER_STATUSES = [
   "drafting",
   "generated_locked",   // AI draft complete, awaiting subscriber payment to unlock
   "generated_unlocked", // First-letter free: AI draft visible, subscriber can send for review
+  "upsell_dismissed",   // Subscriber dismissed the $100 attorney review upsell — keeps free copy
   "pending_review",
   "under_review",
   "needs_changes",
@@ -74,7 +75,7 @@ export type Priority = (typeof PRIORITIES)[number];
 export const userRoleEnum = pgEnum("user_role", ["subscriber", "employee", "admin", "attorney"]);
 export const letterStatusEnum = pgEnum("letter_status", [
   "submitted", "researching", "drafting", "generated_locked", "generated_unlocked",
-  "pending_review", "under_review", "needs_changes", "approved", "rejected",
+  "upsell_dismissed", "pending_review", "under_review", "needs_changes", "approved", "rejected",
 ]);
 export const letterTypeEnum = pgEnum("letter_type", [
   "demand-letter", "cease-and-desist", "contract-breach", "eviction-notice",

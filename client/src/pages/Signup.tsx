@@ -306,7 +306,7 @@ export default function Signup() {
               {/* Role Selector */}
               <div className="space-y-2">
                 <Label>I am signing up as</Label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   {ROLE_OPTIONS.map(opt => (
                     <button
                       key={opt.value}

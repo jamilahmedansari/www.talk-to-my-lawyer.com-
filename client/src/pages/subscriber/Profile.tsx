@@ -30,7 +30,13 @@ import {
   DollarSign,
   Gavel,
   BarChart2,
+  Scale,
+  Briefcase,
+  Copy,
+  ExternalLink,
+  Settings,
 } from "lucide-react";
+import { useLocation } from "wouter";
 
 const ROLE_LABELS: Record<string, { label: string; color: string }> = {
   subscriber: { label: "Client", color: "bg-blue-100 text-blue-800" },
@@ -660,6 +666,16 @@ export default function Profile() {
         {user?.role === "admin" && (
           <AdminProfileSection />
         )}
+        {/* ─── Role-Specific Sections ─────────────────────────────────────── */}
+
+        {/* Employee: Affiliate Info */}
+        {user?.role === "employee" && <EmployeeProfileSection userId={user.id} />}
+
+        {/* Attorney: Professional Info */}
+        {user?.role === "attorney" && <AttorneyProfileSection />}
+
+        {/* Admin: System Info */}
+        {user?.role === "admin" && <AdminProfileSection />}
       </div>
     </AppLayout>
   );
@@ -776,5 +792,234 @@ function AdminProfileSection() {
         </div>
       </CardContent>
     </Card>
+// ─── Employee Profile Section ─────────────────────────────────────────────────
+function EmployeeProfileSection({ userId }: { userId: number }) {
+  const discountQuery = trpc.affiliate.myCode.useQuery();
+  const [copied, setCopied] = useState(false);
+  const appUrl = typeof window !== "undefined" ? window.location.origin : "";
+  const referralLink = discountQuery.data?.code
+    ? `${appUrl}/?ref=${discountQuery.data.code}`
+    : null;
+
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      toast.success(`${label} copied to clipboard`);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <div className="mt-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Briefcase className="h-4 w-4 text-green-600" />
+            Affiliate Account
+          </CardTitle>
+          <CardDescription>Your discount code and referral link</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {discountQuery.isLoading ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Loading affiliate info...
+            </div>
+          ) : discountQuery.data ? (
+            <>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Your Discount Code</Label>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 bg-muted rounded px-3 py-2 text-sm font-mono font-bold tracking-wider">
+                    {discountQuery.data.code}
+                  </code>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => copyToClipboard(discountQuery.data!.code, "Discount code")}
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Gives clients {discountQuery.data.discountPercent}% off — you earn commission on every use.
+                </p>
+              </div>
+              {referralLink && (
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Your Referral Link</Label>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 bg-muted rounded px-3 py-2 text-xs font-mono truncate">
+                      {referralLink}
+                    </code>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => copyToClipboard(referralLink, "Referral link")}
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+              <Separator />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground text-xs">Commission Rate</p>
+                  <p className="font-semibold">5%</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs">Total Uses</p>
+                  <p className="font-semibold">{discountQuery.data.usageCount}</p>
+                </div>
+              </div>
+              <Button variant="outline" size="sm" className="w-full" asChild>
+                <a href="/employee/earnings">
+                  <Briefcase className="h-4 w-4 mr-2" /> View Earnings Dashboard
+                </a>
+              </Button>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">No discount code found. Contact support.</p>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ─── Attorney Profile Section ─────────────────────────────────────────────────
+function AttorneyProfileSection() {
+  const { user } = useAuth();
+  const [barNumber, setBarNumber] = useState("");
+  const [specialisation, setSpecialisation] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = () => {
+    setSaving(true);
+    // Bar number and specialisation are stored in local component state only.
+    // A future DB migration (adding bar_number and specialisation columns to the
+    // users table) is required before these values can be persisted.
+    // We intentionally do NOT show a success toast to avoid misleading the user.
+    setTimeout(() => {
+      setSaving(false);
+      setEditing(false);
+      toast.warning("Changes are local only", {
+        description: "Persistence is not yet implemented — your changes will be lost on refresh.",
+      });
+    }, 300);
+  };
+
+  return (
+    <div className="mt-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Scale className="h-4 w-4 text-purple-600" />
+            Professional Profile
+          </CardTitle>
+          <CardDescription>Your bar credentials and specialisation area</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Bar Number</Label>
+              {editing ? (
+                <Input
+                  value={barNumber}
+                  onChange={e => setBarNumber(e.target.value)}
+                  placeholder="e.g. CA-123456"
+                  className="text-sm"
+                />
+              ) : (
+                <p className="text-sm font-medium">
+                  {barNumber || <span className="text-muted-foreground italic">Not set</span>}
+                </p>
+              )}
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Specialisation</Label>
+              {editing ? (
+                <Input
+                  value={specialisation}
+                  onChange={e => setSpecialisation(e.target.value)}
+                  placeholder="e.g. Employment Law, Contract Disputes"
+                  className="text-sm"
+                />
+              ) : (
+                <p className="text-sm font-medium">
+                  {specialisation || <span className="text-muted-foreground italic">Not set</span>}
+                </p>
+              )}
+            </div>
+          </div>
+          <Separator />
+          <div className="flex gap-2">
+            {editing ? (
+              <>
+                <Button size="sm" onClick={handleSave} disabled={saving}>
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  Save Changes
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>
+              </>
+            ) : (
+              <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
+                Edit Professional Info
+              </Button>
+            )}
+          </div>
+          <Button variant="outline" size="sm" className="w-full" asChild>
+            <a href="/review">
+              <Scale className="h-4 w-4 mr-2" /> Go to Review Centre
+            </a>
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ─── Admin Profile Section ────────────────────────────────────────────────────
+function AdminProfileSection() {
+  return (
+    <div className="mt-6">
+      <Card className="border-red-200">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Settings className="h-4 w-4 text-red-600" />
+            Admin Access
+          </CardTitle>
+          <CardDescription>System administration and oversight tools</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Button variant="outline" size="sm" asChild>
+              <a href="/admin">
+                <Shield className="h-4 w-4 mr-2" /> Admin Dashboard
+              </a>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <a href="/admin/users">
+                <User className="h-4 w-4 mr-2" /> User Management
+              </a>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <a href="/review">
+                <Scale className="h-4 w-4 mr-2" /> Review Centre
+              </a>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <a href="/admin/jobs">
+                <Settings className="h-4 w-4 mr-2" /> Failed Jobs
+              </a>
+            </Button>
+          </div>
+          <div className="text-xs text-muted-foreground bg-red-50 rounded p-2 border border-red-100">
+            You have full system access. Changes you make affect all users.
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

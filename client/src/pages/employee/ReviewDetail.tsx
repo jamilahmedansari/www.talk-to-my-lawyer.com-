@@ -347,7 +347,7 @@ export default function ReviewDetail() {
                       const intake = letter.intakeJson as any;
                       return (
                         <>
-                          <div className="grid grid-cols-2 gap-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div className="bg-muted/50 rounded-lg p-3">
                               <p className="text-xs text-muted-foreground mb-1">Sender</p>
                               <p className="text-sm font-medium">{intake.sender?.name}</p>

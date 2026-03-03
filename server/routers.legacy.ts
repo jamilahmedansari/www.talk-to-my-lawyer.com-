@@ -895,15 +895,35 @@ export const appRouter = router({
             letterId: input.letterId,
             appUrl: getAppUrl(ctx.req),
           });
-          await sendNewReviewNeededEmail({
-            to: "", // Will use admin email from config
-            name: "Attorney Team",
-            letterSubject: letter.subject,
-            letterId: input.letterId,
-            letterType: letter.letterType,
-            jurisdiction: letter.jurisdictionState ?? "Unknown",
-            appUrl: getAppUrl(ctx.req),
-          });
+          const reviewTeamEmail =
+            process.env.REVIEW_TEAM_EMAIL ??
+            process.env.ADMIN_REVIEW_EMAIL;
+          // Fallback: if no review-team env var is set, use DEVOPS_EMAIL / OWNER_EMAIL
+          // so notifications are never silently dropped.
+          const FALLBACK_REVIEW_RECIPIENT =
+            process.env.DEVOPS_EMAIL ??
+            process.env.OWNER_EMAIL ??
+            null;
+          const effectiveReviewEmail = reviewTeamEmail ?? FALLBACK_REVIEW_RECIPIENT;
+          if (!reviewTeamEmail) {
+            console.error(
+              "[legacy.freeUnlock] Missing REVIEW_TEAM_EMAIL / ADMIN_REVIEW_EMAIL — " +
+              (effectiveReviewEmail
+                ? `falling back to ${effectiveReviewEmail} for letter #${input.letterId}`
+                : "no fallback configured, review-queue notification NOT sent for letter #" + input.letterId)
+            );
+          }
+          if (effectiveReviewEmail) {
+            await sendNewReviewNeededEmail({
+              to: effectiveReviewEmail,
+              name: "Review Team",
+              letterSubject: letter.subject,
+              letterId: input.letterId,
+              letterType: letter.letterType,
+              jurisdiction: letter.jurisdictionState ?? "Unknown",
+              appUrl: getAppUrl(ctx.req),
+            });
+          }
         } catch (e) { console.error("[freeUnlock] Email error:", e); }
 
         return { success: true, free: true };
