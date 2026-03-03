@@ -1,0 +1,791 @@
+# Instincts generated from https://github.com/jamilahmedansari/www.talk-to-my-lawyer.com-
+# Generated: 2026-03-03T09:07:13.727Z
+# Version: 2.0
+
+---
+id: www.talk-to-my-lawyer.com--commit-length
+trigger: "when writing a commit message"
+confidence: 0.6
+domain: git
+source: repo-analysis
+source_repo: https://github.com/jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Commit Length
+
+## Action
+
+Write detailed commit messages (aim for 50-100 characters for first line)
+
+## Evidence
+
+- Average commit message length: 228 chars
+- Based on 118 commits
+
+---
+id: www.talk-to-my-lawyer.com--naming-files
+trigger: "when creating a new file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Naming Files
+
+## Action
+
+Use camelCase naming convention
+
+## Evidence
+
+- Analyzed file naming patterns in repository
+- Dominant pattern: camelCase
+
+---
+id: www.talk-to-my-lawyer.com--import-alias
+trigger: "when importing modules"
+confidence: 0.85
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Import Alias
+
+## Action
+
+Use path aliases (@/, ~/) instead of relative imports
+
+## Evidence
+
+- Import analysis shows alias pattern
+- Example: import { x } from '@/lib/x'
+
+---
+id: www.talk-to-my-lawyer.com--export-style
+trigger: "when exporting from a module"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Export Style
+
+## Action
+
+Prefer mixed exports
+
+## Evidence
+
+- Export pattern analysis
+- Dominant style: mixed
+
+---
+id: www.talk-to-my-lawyer.com--arch-type-based
+trigger: "when adding new code"
+confidence: 0.8
+domain: architecture
+source: repo-analysis
+source_repo: https://github.com/jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Arch Type Based
+
+## Action
+
+Place code in the appropriate type folder (components/, services/, utils/, etc.)
+
+## Evidence
+
+- Type-based module organization detected
+- Folders: 
+
+---
+id: www.talk-to-my-lawyer.com--test-framework
+trigger: "when writing tests"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Test Framework
+
+## Action
+
+Use vitest as the test framework
+
+## Evidence
+
+- Test framework detected: vitest
+- File pattern: *.test.ts
+
+---
+id: www.talk-to-my-lawyer.com--test-naming
+trigger: "when creating a test file"
+confidence: 0.85
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Test Naming
+
+## Action
+
+Name test files using the pattern: *.test.ts
+
+## Evidence
+
+- File pattern: *.test.ts
+- Consistent across test files
+
+---
+id: www.talk-to-my-lawyer.com--test-mocking
+trigger: "when mocking dependencies in tests"
+confidence: 0.75
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Test Mocking
+
+## Action
+
+Use vi.mock for mocking
+
+## Evidence
+
+- Mocking pattern detected: vi.mock
+- Consistent across test files
+
+---
+id: www.talk-to-my-lawyer.com--test-types
+trigger: "when planning tests for a feature"
+confidence: 0.7
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Test Types
+
+## Action
+
+Write unit, integration tests to match project standards
+
+## Evidence
+
+- Test types detected: unit, integration
+- Coverage config: no
+
+---
+id: www.talk-to-my-lawyer.com--workflow-database-migration
+trigger: "when modifying the database schema or adding tables"
+confidence: 0.75
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Workflow Database Migration
+
+## Action
+
+Follow the database-migration workflow:
+1. Create migration file
+2. Update schema definitions
+3. Generate/update types
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~5x per month
+- Files: migrations/*, **/schema.*, **/types.ts
+
+---
+id: www.talk-to-my-lawyer.com--workflow-feature-development
+trigger: "when implementing a new feature"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Workflow Feature Development
+
+## Action
+
+Follow the feature-development workflow:
+1. Add feature implementation
+2. Add tests for feature
+3. Update documentation
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~13x per month
+- Files: client/src/*, client/src/components/*, client/src/components/shared/*
+
+---
+id: www.talk-to-my-lawyer.com--workflow-refactoring
+trigger: "when refactoring code"
+confidence: 0.7
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Workflow Refactoring
+
+## Action
+
+Follow the refactoring workflow:
+1. Ensure tests pass before refactor
+2. Refactor code structure
+3. Verify tests still pass
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~4x per month
+- Files: src/**/*
+
+---
+id: www.talk-to-my-lawyer.com--workflow-feature-development-with-tests
+trigger: "when doing feature development with tests"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Workflow Feature Development With Tests
+
+## Action
+
+Follow the feature-development-with-tests workflow:
+1. Implement feature in server/routers/*.ts
+2. Add corresponding test file (server/phase*.test.ts or server/*.test.ts)
+3. Update todo.md with progress
+4. Run full test suite validation
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~8x per month
+- Files: server/routers.ts, server/routers/*.ts, server/phase*.test.ts
+
+---
+id: www.talk-to-my-lawyer.com--workflow-database-schema-migration
+trigger: "when doing database schema migration"
+confidence: 0.7
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Workflow Database Schema Migration
+
+## Action
+
+Follow the database-schema-migration workflow:
+1. Create migration SQL in drizzle/*.sql
+2. Update drizzle/schema.ts with new types
+3. Update drizzle/meta/*.json snapshot
+4. Update server/db.ts helper functions
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~4x per month
+- Files: drizzle/*.sql, drizzle/schema.ts, drizzle/meta/*.json
+
+---
+id: www.talk-to-my-lawyer.com--workflow-authentication-system-enhancement
+trigger: "when doing authentication system enhancement"
+confidence: 0.65
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Workflow Authentication System Enhancement
+
+## Action
+
+Follow the authentication-system-enhancement workflow:
+1. Update client auth pages (Login.tsx, Signup.tsx, etc.)
+2. Modify server/supabaseAuth.ts for auth logic
+3. Update client/src/_core/hooks/useAuth.ts
+4. Add auth callback handling if needed
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~3x per month
+- Files: client/src/pages/Login.tsx, client/src/pages/Signup.tsx, server/supabaseAuth.ts
+
+---
+id: www.talk-to-my-lawyer.com--workflow-merge-pull-request
+trigger: "when doing merge pull request"
+confidence: 0.8
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Workflow Merge Pull Request
+
+## Action
+
+Follow the merge-pull-request workflow:
+1. Merge pull request
+2. Update .claude/ metadata files
+3. Update skill documentation if needed
+4. Clean up branch references
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~6x per month
+- Files: .claude/homunculus/instincts/inherited/*.yaml, .claude/skills/*/SKILL.md
+
+---
+id: www.talk-to-my-lawyer.com--workflow-email-notification-system
+trigger: "when doing email notification system"
+confidence: 0.65
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Workflow Email Notification System
+
+## Action
+
+Follow the email-notification-system workflow:
+1. Add email template function in server/email.ts
+2. Wire email trigger into relevant router procedure
+3. Add error handling and logging
+4. Add comprehensive tests for email flow
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~3x per month
+- Files: server/email.ts, server/routers.ts, server/phase*.test.ts
+
+---
+id: www.talk-to-my-lawyer.com--workflow-frontend-ui-component-update
+trigger: "when doing frontend ui component update"
+confidence: 0.75
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Workflow Frontend Ui Component Update
+
+## Action
+
+Follow the frontend-ui-component-update workflow:
+1. Create or update component in client/src/components/
+2. Update relevant pages that use the component
+3. Add responsive design considerations
+4. Test across different screen sizes
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~5x per month
+- Files: client/src/components/*.tsx, client/src/pages/*/*.tsx, client/src/index.css
+
+---
+id: www.talk-to-my-lawyer.com--workflow-documentation-and-architecture-update
+trigger: "when doing documentation and architecture update"
+confidence: 0.7
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Workflow Documentation And Architecture Update
+
+## Action
+
+Follow the documentation-and-architecture-update workflow:
+1. Update README.md with new features
+2. Update ARCHITECTURE.md or CONTRIBUTING.md
+3. Add or update skill documentation
+4. Update roadmap or todo items
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~4x per month
+- Files: README.md, ARCHITECTURE.md, CONTRIBUTING.md
+
+---
+id: www.talk-to-my-lawyer.com--camelcase-file-naming
+trigger: "When creating new files"
+confidence: 0.85
+domain: code-style
+source: repo-analysis
+source_repo: jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Camelcase File Naming
+
+## Action
+
+Use camelCase for file names
+
+## Evidence
+
+- Pattern in config files: drizzle.config.ts, vite.config.ts
+- Consistent camelCase naming in codebase structure
+
+---
+id: www.talk-to-my-lawyer.com--pascalcase-components
+trigger: "When creating React components"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Pascalcase Components
+
+## Action
+
+Use PascalCase for component names and class names
+
+## Evidence
+
+- Components like Login.tsx, Signup.tsx, ProtectedRoute.tsx
+- Pattern across client/src/components/ and pages/
+
+---
+id: www.talk-to-my-lawyer.com--alias-imports
+trigger: "When importing modules"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Alias Imports
+
+## Action
+
+Use alias import style with path shortcuts
+
+## Evidence
+
+- Import style marked as 'alias'
+- References to client/src/_core/hooks/ structure
+
+---
+id: www.talk-to-my-lawyer.com--vitest-testing
+trigger: "When writing tests"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Vitest Testing
+
+## Action
+
+Use vitest framework with *.test.ts file pattern
+
+## Evidence
+
+- Testing framework: vitest
+- Examples: server/phase*.test.ts, server/*.test.ts files
+
+---
+id: www.talk-to-my-lawyer.com--vi-mock-style
+trigger: "When mocking in tests"
+confidence: 0.85
+domain: testing
+source: repo-analysis
+source_repo: jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Vi Mock Style
+
+## Action
+
+Use vi.mock() for mocking dependencies
+
+## Evidence
+
+- Mocking style specified as 'vi.mock'
+- Vitest framework usage
+
+---
+id: www.talk-to-my-lawyer.com--feat-prefix-commits
+trigger: "When adding new features"
+confidence: 0.9
+domain: git
+source: repo-analysis
+source_repo: jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Feat Prefix Commits
+
+## Action
+
+Use 'feat:' prefix for feature commits
+
+## Evidence
+
+- feat: add Google + Apple social OAuth via Supabase Auth
+- feat: migrate file storage to Supabase private buckets
+
+---
+id: www.talk-to-my-lawyer.com--checkpoint-commits
+trigger: "When completing development phases"
+confidence: 0.85
+domain: git
+source: repo-analysis
+source_repo: jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Checkpoint Commits
+
+## Action
+
+Use 'Checkpoint: Phase X:' format for milestone commits
+
+## Evidence
+
+- Checkpoint: Phase 85: Sentry Alert Rules Configuration
+- Checkpoint: Phase 81: Removed all MySQL/TiDB references
+
+---
+id: www.talk-to-my-lawyer.com--chore-prefix-commits
+trigger: "When doing maintenance tasks"
+confidence: 0.8
+domain: git
+source: repo-analysis
+source_repo: jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Chore Prefix Commits
+
+## Action
+
+Use 'chore:' prefix for maintenance commits
+
+## Evidence
+
+- chore: add .env.example with all required and optional variables
+- Pattern shows chore prefix usage
+
+---
+id: www.talk-to-my-lawyer.com--refactor-with-tests
+trigger: "When refactoring code"
+confidence: 0.85
+domain: workflow
+source: repo-analysis
+source_repo: jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Refactor With Tests
+
+## Action
+
+Ensure tests pass before and after refactoring
+
+## Evidence
+
+- Refactoring workflow: 'Ensure tests pass before refactor'
+- refactor: remove 30 legacy test files
+
+---
+id: www.talk-to-my-lawyer.com--feature-with-tests
+trigger: "When implementing new features"
+confidence: 0.92
+domain: workflow
+source: repo-analysis
+source_repo: jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Feature With Tests
+
+## Action
+
+Create feature implementation, add tests, then update documentation
+
+## Evidence
+
+- 8 instances of feature-development-with-tests workflow
+- Pattern: implement → test → document
+
+---
+id: www.talk-to-my-lawyer.com--db-migration-sequence
+trigger: "When changing database schema"
+confidence: 0.88
+domain: workflow
+source: repo-analysis
+source_repo: jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Db Migration Sequence
+
+## Action
+
+Create migration SQL, update schema.ts, update meta snapshots, update db helpers
+
+## Evidence
+
+- 4 instances of database-schema-migration
+- Files: drizzle/*.sql, drizzle/schema.ts, drizzle/meta/*.json
+
+---
+id: www.talk-to-my-lawyer.com--auth-flow-update
+trigger: "When enhancing authentication"
+confidence: 0.85
+domain: workflow
+source: repo-analysis
+source_repo: jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Auth Flow Update
+
+## Action
+
+Update client auth pages, modify supabaseAuth.ts, update useAuth hook
+
+## Evidence
+
+- 3 instances of authentication-system-enhancement
+- Files: Login.tsx, Signup.tsx, supabaseAuth.ts, useAuth.ts
+
+---
+id: www.talk-to-my-lawyer.com--email-notification-flow
+trigger: "When adding email notifications"
+confidence: 0.87
+domain: workflow
+source: repo-analysis
+source_repo: jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Email Notification Flow
+
+## Action
+
+Add email template, wire trigger into router, add error handling and tests
+
+## Evidence
+
+- 3 instances of email-notification-system
+- Files: server/email.ts, server/routers.ts, phase*.test.ts
+
+---
+id: www.talk-to-my-lawyer.com--ui-component-responsive
+trigger: "When updating UI components"
+confidence: 0.83
+domain: workflow
+source: repo-analysis
+source_repo: jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Ui Component Responsive
+
+## Action
+
+Create/update component, update using pages, add responsive design, test screen sizes
+
+## Evidence
+
+- 5 instances of frontend-ui-component-update
+- Files: client/src/components/*.tsx, client/src/pages/*/*.tsx
+
+---
+id: www.talk-to-my-lawyer.com--docs-after-features
+trigger: "When major features are added"
+confidence: 0.89
+domain: workflow
+source: repo-analysis
+source_repo: jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Docs After Features
+
+## Action
+
+Update README, update architecture docs, update skill docs, update todo roadmap
+
+## Evidence
+
+- 4 instances of documentation-and-architecture-update
+- Files: README.md, ARCHITECTURE.md, CONTRIBUTING.md, todo.md
+
+---
+id: www.talk-to-my-lawyer.com--merge-pr-cleanup
+trigger: "When merging pull requests"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Merge Pr Cleanup
+
+## Action
+
+Merge PR, update .claude/ metadata, update skill docs, clean branch references
+
+## Evidence
+
+- 6 instances of merge-pull-request
+- Files: .claude/homunculus/instincts/inherited/*.yaml, .claude/skills/*/SKILL.md
+
+---
+id: www.talk-to-my-lawyer.com--type-based-organization
+trigger: "When organizing code modules"
+confidence: 0.85
+domain: architecture
+source: repo-analysis
+source_repo: jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Type Based Organization
+
+## Action
+
+Use type-based module organization with client/server/drizzle separation
+
+## Evidence
+
+- Module organization: type-based
+- Common folders: client, server, drizzle, docs, scripts
+
+---
+id: www.talk-to-my-lawyer.com--error-boundaries
+trigger: "When handling errors in React"
+confidence: 0.8
+domain: architecture
+source: repo-analysis
+source_repo: jamilahmedansari/www.talk-to-my-lawyer.com-
+---
+
+# Www.talk To My Lawyer.com  Error Boundaries
+
+## Action
+
+Use error boundaries for error handling
+
+## Evidence
+
+- Error handling style: error-boundaries
+- errorBoundaries: true in patterns
+
