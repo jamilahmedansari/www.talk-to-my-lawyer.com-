@@ -27,6 +27,7 @@ import {
   checkLetterSubmissionAllowed,
   createBillingPortalSession,
   createCheckoutSession,
+  createAttorneyReviewCheckout,
   createLetterUnlockCheckout,
   createTrialReviewCheckout,
   getOrCreateStripeCustomer,
@@ -324,6 +325,32 @@ export const billingRouter = router({
       return [];
     }
   }),
+
+  /**
+   * Creates a $100 Stripe Checkout session for the optional attorney review upsell.
+   * Only valid when the letter is in generated_unlocked status (free trial).
+   */
+  payForAttorneyReview: subscriberProcedure
+    .input(z.object({ letterId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      await checkTrpcRateLimit("payment", `user:${ctx.user.id}`);
+      const letter = await getLetterRequestSafeForSubscriber(input.letterId, ctx.user.id);
+      if (!letter) throw new TRPCError({ code: "NOT_FOUND", message: "Letter not found" });
+      if (letter.status !== "generated_unlocked") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Attorney review upsell is only available for free-trial letters (generated_unlocked)",
+        });
+      }
+      const origin = getAppUrl(ctx.req);
+      return createAttorneyReviewCheckout({
+        userId: ctx.user.id,
+        email: ctx.user.email ?? "",
+        name: ctx.user.name,
+        letterId: input.letterId,
+        origin,
+      });
+    }),
 
   /** Returns the last 50 invoices for the current user from Stripe */
   receipts: subscriberProcedure.query(async ({ ctx }) => {

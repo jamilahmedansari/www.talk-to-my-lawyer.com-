@@ -2,6 +2,7 @@ import AppLayout from "@/components/shared/AppLayout";
 import StatusBadge from "@/components/shared/StatusBadge";
 import StatusTimeline from "@/components/shared/StatusTimeline";
 import { LetterPaywall } from "@/components/LetterPaywall";
+import { LetterFreeTrialUpsell } from "@/components/LetterFreeTrialUpsell";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -263,6 +264,7 @@ export default function LetterDetail() {
   const userVisibleActions = actions?.filter((a) => a.noteVisibility === "user_visible" && a.noteText);
   const isPolling = POLLING_STATUSES.includes(letter.status);
   const isGeneratedLocked = letter.status === "generated_locked";
+  const isGeneratedUnlocked = letter.status === "generated_unlocked";
 
   return (
     <AppLayout breadcrumb={[{ label: "My Letters", href: "/letters" }, { label: letter.subject }]}>
@@ -351,6 +353,16 @@ export default function LetterDetail() {
         {/* ── PAYWALL: generated_locked — blurred draft + $200 CTA ── */}
         {isGeneratedLocked && (
           <LetterPaywall
+            letterId={letterId}
+            letterType={letter.letterType}
+            subject={letter.subject}
+            draftContent={aiDraftVersion?.content ?? undefined}
+          />
+        )}
+
+        {/* ── FREE TRIAL: generated_unlocked — full draft + optional $100 upsell ── */}
+        {isGeneratedUnlocked && (
+          <LetterFreeTrialUpsell
             letterId={letterId}
             letterType={letter.letterType}
             subject={letter.subject}

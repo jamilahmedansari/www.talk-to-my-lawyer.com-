@@ -10,6 +10,9 @@ import { subscriptions } from "../drizzle/schema";
 import { eq, and } from "drizzle-orm";
 import { PLANS, getPlanConfig, LETTER_UNLOCK_PRICE_CENTS, MONTHLY_BASIC_PRICE_CENTS, MONTHLY_PRO_PRICE_CENTS } from "./stripe-products";
 
+/** Price in cents for the optional $100 attorney review upsell on free-trial letters */
+export const ATTORNEY_REVIEW_UPSELL_PRICE_CENTS = 10000; // $100
+
 /**
  * Resolves a discount code from our DB into a Stripe coupon ID.
  * Creates a Stripe coupon on-the-fly if the code is valid and active.
@@ -468,6 +471,66 @@ export async function createLetterUnlockCheckout(params: {
     cancel_url: `${origin}/letters/${letterId}?canceled=true`,
   });
 
+  if (!session.url) throw new Error("Stripe did not return a checkout URL");
+  return { url: session.url, sessionId: session.id };
+}
+
+// ─── Create Attorney Review Upsell Checkout ($100) ───────────────────────────
+/**
+ * Creates a one-time $100 Stripe Checkout session for the optional attorney
+ * review upsell shown after a free-trial letter (generated_unlocked).
+ * unlock_type=attorney_review_upsell in metadata so the webhook transitions
+ * the letter to pending_review after payment.
+ */
+export async function createAttorneyReviewCheckout(params: {
+  userId: number;
+  email: string;
+  name?: string | null;
+  letterId: number;
+  origin: string;
+}): Promise<{ url: string; sessionId: string }> {
+  const { userId, email, name, letterId, origin } = params;
+  const stripe = getStripe();
+  const customerId = await getOrCreateStripeCustomer(userId, email, name);
+  const session = await stripe.checkout.sessions.create({
+    customer: customerId,
+    client_reference_id: userId.toString(),
+    mode: "payment",
+    payment_method_types: ["card"],
+    allow_promotion_codes: false,
+    metadata: {
+      user_id: userId.toString(),
+      plan_id: "per_letter",
+      letter_id: letterId.toString(),
+      unlock_type: "attorney_review_upsell",
+      customer_email: email,
+      customer_name: name ?? "",
+    },
+    line_items: [
+      {
+        price_data: {
+          currency: "usd",
+          product_data: {
+            name: "Attorney Review — Optional Upgrade",
+            description: "Have a licensed attorney review, edit, and approve your letter. Receive a final approved PDF.",
+            metadata: { plan_id: "per_letter", letter_id: letterId.toString() },
+          },
+          unit_amount: ATTORNEY_REVIEW_UPSELL_PRICE_CENTS, // $100
+        },
+        quantity: 1,
+      },
+    ],
+    payment_intent_data: {
+      metadata: {
+        user_id: userId.toString(),
+        plan_id: "per_letter",
+        letter_id: letterId.toString(),
+        unlock_type: "attorney_review_upsell",
+      },
+    },
+    success_url: `${origin}/letters/${letterId}?review_submitted=true`,
+    cancel_url: `${origin}/letters/${letterId}`,
+  });
   if (!session.url) throw new Error("Stripe did not return a checkout URL");
   return { url: session.url, sessionId: session.id };
 }

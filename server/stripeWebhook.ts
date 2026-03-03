@@ -13,7 +13,7 @@ import {
   getUserById, createNotification, getDiscountCodeByCode,
   incrementDiscountCodeUsage, createCommission,
 } from "./db";
-import { sendLetterApprovedEmail, sendLetterUnlockedEmail, sendEmployeeCommissionEmail } from "./email";
+import { sendLetterApprovedEmail, sendLetterUnlockedEmail, sendEmployeeCommissionEmail, sendNewReviewNeededEmail } from "./email";
 import { users } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
 import { captureServerException, addServerBreadcrumb } from "./sentry";
@@ -196,6 +196,63 @@ export async function stripeWebhookHandler(req: Request, res: Response): Promise
                 }
               } catch (unlockErr) {
                 console.error(`[StripeWebhook] Failed to unlock letter #${letterId}:`, unlockErr);
+              }
+            }
+          }
+
+          // ─── Attorney review upsell: transition generated_unlocked → pending_review ───
+          if (letterIdStr && unlockType === "attorney_review_upsell") {
+            const letterId = parseInt(letterIdStr, 10);
+            if (!isNaN(letterId)) {
+              try {
+                const letter = await getLetterRequestById(letterId);
+                if (letter && letter.status === "generated_unlocked") {
+                  await updateLetterStatus(letterId, "pending_review");
+                  await logReviewAction({
+                    letterRequestId: letterId,
+                    actorType: "system",
+                    action: "attorney_review_payment_received",
+                    noteText: `$100 attorney review payment received. Letter queued for attorney review. Stripe session: ${session.id}`,
+                    noteVisibility: "user_visible",
+                    fromStatus: "generated_unlocked",
+                    toStatus: "pending_review",
+                  });
+                  await createNotification({
+                    userId,
+                    type: "letter_unlocked",
+                    title: "Payment confirmed — letter sent for attorney review!",
+                    body: `Your letter "${letter.subject}" is now in the attorney review queue.`,
+                    link: `/letters/${letterId}`,
+                  });
+                  const subscriber = await getUserById(userId);
+                  if (subscriber?.email) {
+                    const origin = session.success_url?.split('/letters')[0]
+                      ?? process.env.APP_BASE_URL ?? 'https://www.talk-to-my-lawyer.com';
+                    await sendLetterUnlockedEmail({
+                      to: subscriber.email,
+                      name: subscriber.name ?? "Subscriber",
+                      subject: letter.subject,
+                      letterId,
+                      appUrl: origin,
+                    }).catch(console.error);
+                    // Notify attorney team (send to admin/review email)
+                    const adminEmail = process.env.ADMIN_REVIEW_EMAIL ?? ENV.resendFromEmail;
+                    await sendNewReviewNeededEmail({
+                      to: adminEmail,
+                      name: "Review Team",
+                      letterSubject: letter.subject,
+                      letterId,
+                      letterType: letter.letterType,
+                      jurisdiction: [letter.jurisdictionCity, letter.jurisdictionState, letter.jurisdictionCountry].filter(Boolean).join(", ") || "Not specified",
+                      appUrl: origin,
+                    }).catch(console.error);
+                  }
+                  console.log(`[StripeWebhook] Attorney review upsell paid for letter #${letterId} → pending_review`);
+                } else {
+                  console.warn(`[StripeWebhook] Attorney review upsell: letter #${letterId} not in generated_unlocked (status: ${letter?.status})`);
+                }
+              } catch (upsellErr) {
+                console.error(`[StripeWebhook] Failed to process attorney review upsell for letter #${letterId}:`, upsellErr);
               }
             }
           }

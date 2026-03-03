@@ -26,6 +26,10 @@ import {
   CheckCircle,
   Calendar,
   AlertTriangle,
+  Copy,
+  DollarSign,
+  Gavel,
+  BarChart2,
 } from "lucide-react";
 
 const ROLE_LABELS: Record<string, { label: string; color: string }> = {
@@ -642,7 +646,135 @@ export default function Profile() {
             )}
           </CardContent>
         </Card>
+        {/* ── Employee: Affiliate Code & Earnings Summary ── */}
+        {user?.role === "employee" && (
+          <EmployeeProfileSection />
+        )}
+
+        {/* ── Attorney: Review Stats ── */}
+        {user?.role === "attorney" && (
+          <AttorneyProfileSection />
+        )}
+
+        {/* ── Admin: Quick Stats ── */}
+        {user?.role === "admin" && (
+          <AdminProfileSection />
+        )}
       </div>
     </AppLayout>
+  );
+}
+
+// ─── Employee Profile Section ─────────────────────────────────────────────
+function EmployeeProfileSection() {
+  const { data: code } = trpc.affiliate.myCode.useQuery();
+  const { data: earnings } = trpc.affiliate.myEarnings.useQuery();
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    if (code?.code) {
+      navigator.clipboard.writeText(code.code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <DollarSign className="h-5 w-5" />
+          Affiliate Overview
+        </CardTitle>
+        <CardDescription>Your discount code and earnings summary</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Discount Code */}
+        {code && (
+          <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <div>
+              <p className="text-xs text-blue-600 font-medium mb-0.5">Your Affiliate Code</p>
+              <p className="font-mono text-lg font-bold text-blue-800 tracking-widest">{code.code}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{code.usageCount ?? 0} uses · {code.isActive ? "Active" : "Inactive"}</p>
+            </div>
+            <Button size="sm" variant="outline" onClick={handleCopy} className="border-blue-300">
+              {copied ? <CheckCircle className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+              {copied ? "Copied!" : "Copy"}
+            </Button>
+          </div>
+        )}
+        {/* Earnings Summary */}
+        {earnings && (
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { label: "Total Earned", value: `$${(earnings.totalEarned / 100).toFixed(2)}`, color: "text-foreground" },
+              { label: "Pending", value: `$${(earnings.pending / 100).toFixed(2)}`, color: "text-amber-600" },
+              { label: "Paid Out", value: `$${(earnings.paid / 100).toFixed(2)}`, color: "text-green-600" },
+            ].map(({ label, value, color }) => (
+              <div key={label} className="text-center p-3 bg-muted/40 rounded-lg">
+                <p className={`text-lg font-bold ${color}`}>{value}</p>
+                <p className="text-xs text-muted-foreground">{label}</p>
+              </div>
+            ))}
+          </div>
+        )}
+        <p className="text-xs text-muted-foreground">
+          Go to <a href="/employee/dashboard" className="text-primary underline">Employee Dashboard</a> for full commission history and payout requests.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Attorney Profile Section ─────────────────────────────────────────────
+function AttorneyProfileSection() {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Gavel className="h-5 w-5" />
+          Attorney Overview
+        </CardTitle>
+        <CardDescription>Your review activity and access</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
+          <p className="text-sm font-medium text-purple-800">Review Center Access</p>
+          <p className="text-xs text-purple-600 mt-0.5">You have access to claim, edit, and approve AI-generated legal letter drafts.</p>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Go to <a href="/attorney/review" className="text-primary underline">Review Center</a> to see the current queue.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Admin Profile Section ─────────────────────────────────────────────────
+function AdminProfileSection() {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <BarChart2 className="h-5 w-5" />
+          Admin Overview
+        </CardTitle>
+        <CardDescription>Platform administration access</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+          <p className="text-sm font-medium text-red-800">Full Platform Access</p>
+          <p className="text-xs text-red-600 mt-0.5">You have administrator access to all platform features, analytics, and user management.</p>
+        </div>
+        <div className="flex gap-2">
+          <a href="/admin/dashboard">
+            <Button size="sm" variant="outline">Admin Dashboard</Button>
+          </a>
+          <a href="/admin/review">
+            <Button size="sm" variant="outline">Review Centre</Button>
+          </a>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

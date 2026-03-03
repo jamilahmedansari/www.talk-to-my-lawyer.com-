@@ -32,6 +32,7 @@ import {
   sendLetterRejectedEmail,
   sendNeedsChangesEmail,
   sendReviewAssignedEmail,
+  sendReviewCompletedEmail,
   sendStatusUpdateEmail,
 } from "../email";
 import { retryPipelineFromStage } from "../pipeline";
@@ -300,6 +301,18 @@ export const reviewRouter = router({
           body: `Your letter "${letter.subject}" is ready to download.${pdfStoragePath ? " A PDF copy is available in your account." : ""}`,
           link: `/letters/${input.letterId}`,
         });
+        // Notify the reviewing attorney that their review is complete
+        if (ctx.user.email) {
+          const appUrl2 = getAppUrl(ctx.req);
+          sendReviewCompletedEmail({
+            to: ctx.user.email,
+            name: ctx.user.name ?? "Attorney",
+            letterSubject: letter.subject,
+            letterId: input.letterId,
+            action: "approved",
+            appUrl: appUrl2,
+          }).catch((e) => console.error("[Notify] Review completed email failed:", e));
+        }
       } catch (err) {
         console.error("[Notify] Approve notification failed:", err);
       }
