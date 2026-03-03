@@ -14,6 +14,25 @@ const supabaseKey = (
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
 ) as string;
 
+/**
+ * Storage key layout:
+ *   sb_session       — Supabase's own key: stores the FULL serialized session
+ *                      JSON (access_token + refresh_token + expiry + user).
+ *                      Supabase reads this on page reload to restore the session.
+ *   sb_access_token  — Bare JWT string consumed by main.tsx → tRPC httpBatchLink
+ *                      Authorization header. Written by our custom storage and
+ *                      the onAuthStateChange listener.
+ *   sb_refresh_token — Mirror of the refresh token for debugging / manual use.
+ *
+ * IMPORTANT: sb_session and sb_access_token MUST be different keys.
+ * Supabase persists the full session JSON to `storageKey`. If we used
+ * "sb_access_token" as the storageKey, the custom setItem would overwrite the
+ * full JSON with the bare token, breaking session restore on reload.
+ */
+const SUPABASE_SESSION_KEY = "sb_session";
+const TRPC_TOKEN_KEY = "sb_access_token";
+const TRPC_REFRESH_KEY = "sb_refresh_token";
+
 let _client: SupabaseClient | null = null;
 
 export function getSupabaseClient(): SupabaseClient | null {
@@ -32,39 +51,52 @@ export function getSupabaseClient(): SupabaseClient | null {
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: true,
-        // Store tokens under our own keys so the tRPC httpBatchLink can read them
-        storageKey: "sb_access_token",
+        // Supabase stores the FULL session JSON under this key.
+        // It must NOT collide with the bare-token key that tRPC reads.
+        storageKey: SUPABASE_SESSION_KEY,
         storage: {
           getItem: (key: string) => localStorage.getItem(key),
           setItem: (key: string, value: string) => {
+            // Persist the full session JSON under the Supabase session key
             localStorage.setItem(key, value);
-            // Also keep the bare access token key that main.tsx reads for tRPC headers
-            if (key === "sb_access_token") {
+
+            // Mirror the bare access token to the tRPC key whenever Supabase
+            // writes or refreshes the session
+            if (key === SUPABASE_SESSION_KEY) {
               try {
                 const parsed = JSON.parse(value);
                 if (parsed?.access_token) {
-                  localStorage.setItem("sb_access_token", parsed.access_token);
-                  localStorage.setItem("sb_refresh_token", parsed.refresh_token ?? "");
+                  localStorage.setItem(TRPC_TOKEN_KEY, parsed.access_token);
+                  localStorage.setItem(TRPC_REFRESH_KEY, parsed.refresh_token ?? "");
                 }
               } catch {
-                // value is already the raw token string
-                localStorage.setItem("sb_access_token", value);
+                // Not JSON — ignore
               }
             }
           },
-          removeItem: (key: string) => localStorage.removeItem(key),
+          removeItem: (key: string) => {
+            localStorage.removeItem(key);
+            // When Supabase clears the session, also clear the tRPC keys
+            if (key === SUPABASE_SESSION_KEY) {
+              localStorage.removeItem(TRPC_TOKEN_KEY);
+              localStorage.removeItem(TRPC_REFRESH_KEY);
+            }
+          },
         },
       },
     });
 
-    // Keep tRPC token keys in sync whenever the session changes
+    // Belt-and-suspenders: keep tRPC token keys in sync whenever the session
+    // changes (login, refresh, logout). This catches edge cases where the
+    // custom storage setItem above might not fire (e.g. signOut clears state
+    // without writing to storage).
     _client.auth.onAuthStateChange((_event, session) => {
       if (session?.access_token) {
-        localStorage.setItem("sb_access_token", session.access_token);
-        localStorage.setItem("sb_refresh_token", session.refresh_token ?? "");
+        localStorage.setItem(TRPC_TOKEN_KEY, session.access_token);
+        localStorage.setItem(TRPC_REFRESH_KEY, session.refresh_token ?? "");
       } else {
-        localStorage.removeItem("sb_access_token");
-        localStorage.removeItem("sb_refresh_token");
+        localStorage.removeItem(TRPC_TOKEN_KEY);
+        localStorage.removeItem(TRPC_REFRESH_KEY);
       }
     });
   }
@@ -114,8 +146,9 @@ export async function supabaseSignOut(): Promise<void> {
   const client = getSupabaseClient();
   if (!client) return;
   await client.auth.signOut();
-  localStorage.removeItem("sb_access_token");
-  localStorage.removeItem("sb_refresh_token");
+  localStorage.removeItem(SUPABASE_SESSION_KEY);
+  localStorage.removeItem(TRPC_TOKEN_KEY);
+  localStorage.removeItem(TRPC_REFRESH_KEY);
 }
 
 // ─── Channel registry to avoid duplicate subscriptions ────────────────────────
