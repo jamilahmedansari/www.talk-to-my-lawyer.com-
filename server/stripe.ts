@@ -493,7 +493,7 @@ export const ATTORNEY_REVIEW_UPSELL_PRICE_CENTS = 10_000; // $100.00
  * On payment success the webhook transitions:
  *   generated_unlocked → pending_review  (unlock_type = "attorney_review_upsell")
  */
-export async function export async function createAttorneyReviewCheckout(params: {
+export async function export async function export async function createAttorneyReviewCheckout(params: {
   userId: number;
   email: string;
   name: string | null;
