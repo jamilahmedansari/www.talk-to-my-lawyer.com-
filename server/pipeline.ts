@@ -518,9 +518,7 @@ export async function runFullPipeline(letterId: number, intake: IntakeJson, dbFi
   // ── Try n8n workflow first (primary path) ──────────────────────────────────
   const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL ?? "";
   const n8nCallbackSecret = process.env.N8N_CALLBACK_SECRET ?? "";
-  const appBaseUrl = process.env.BUILT_IN_FORGE_API_URL
-    ? (process.env.BUILT_IN_FORGE_API_URL.includes('manus') ? process.env.VITE_APP_ID ? `https://${process.env.VITE_APP_ID}.manus.computer` : "" : "")
-    : "";
+  const appBaseUrl = process.env.APP_BASE_URL || "";
 
   // ── Routing: Direct 3-stage pipeline is PRIMARY.
   // Set N8N_PRIMARY=true in env to route through n8n instead (useful for debugging/experimentation).
@@ -538,13 +536,13 @@ export async function runFullPipeline(letterId: number, intake: IntakeJson, dbFi
 
     try {
       console.log(`[Pipeline] Triggering n8n workflow for letter #${letterId}: ${n8nWebhookUrl}`);
-      const callbackUrl = `${process.env.BUILT_IN_FORGE_API_URL ? '' : ''}/api/pipeline/n8n-callback`;
+      const callbackUrl = `${appBaseUrl}/api/pipeline/n8n-callback`;
       // We fire-and-forget the n8n webhook — the callback endpoint will handle the result
       const payload = {
         letterId,
         letterType: intake.letterType,
         userId: intake.sender?.name ?? "unknown",
-        callbackUrl: callbackUrl || `https://3000-${process.env.VITE_APP_ID ?? 'app'}.manus.computer/api/pipeline/n8n-callback`,
+        callbackUrl,
         callbackSecret: n8nCallbackSecret,
         intakeData: {
           sender: intake.sender,

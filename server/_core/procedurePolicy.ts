@@ -24,7 +24,6 @@ export type Role = "subscriber" | "employee" | "attorney" | "admin";
 export type ProcedureKey =
   // system
   | "system.health"
-  | "system.notifyOwner"
   // auth
   | "auth.me"
   | "auth.logout"
@@ -104,7 +103,6 @@ const ALL_ROLES: readonly Role[] = ["subscriber", "employee", "attorney", "admin
 export const PROCEDURE_POLICY: Record<ProcedureKey, Policy> = {
   // ── System ──────────────────────────────────────────────────────────────────
   "system.health": { auth: "public", note: "Health check" },
-  "system.notifyOwner": { auth: "protected", roles: ["admin"] },
 
   // ── Auth ────────────────────────────────────────────────────────────────────
   "auth.me": { auth: "public", note: "Returns ctx.user if present" },

@@ -9,7 +9,7 @@ import {
 import { Scale, ArrowLeft, ArrowRight, HelpCircle } from "lucide-react";
 
 const LOGO_URL =
-  "https://files.manuscdn.com/user_upload_by_module/session_file/310419663031738932/OabHhALgbskSzGQq.png";
+  "/logo.png";
 
 const FAQ_CATEGORIES = [
   {

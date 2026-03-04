@@ -73,12 +73,12 @@ export async function generateAndUploadApprovedPdf(
     .replace(/\s+/g, "-");
   const fileKey = `approved-letters/${opts.letterId}-${safeSubject}-${timestamp}.pdf`;
 
-  // Graceful fallback: if Forge storage is not configured (e.g. local dev),
+  // Graceful fallback: if Supabase storage is not configured (e.g. local dev),
   // return a data URL so the approval flow still completes without crashing.
-  const forgeApiUrl = process.env.BUILT_IN_FORGE_API_URL || process.env.VITE_FRONTEND_FORGE_API_URL;
-  const forgeApiKey = process.env.BUILT_IN_FORGE_API_KEY;
-  if (!forgeApiUrl || !forgeApiKey) {
-    console.warn(`[PDF] Storage proxy not configured — returning data URL for letter #${opts.letterId}`);
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.warn(`[PDF] Storage not configured — returning data URL for letter #${opts.letterId}`);
     const base64 = pdfBuffer.toString("base64");
     const dataUrl = `data:application/pdf;base64,${base64}`;
     return { pdfUrl: dataUrl, pdfKey: fileKey };

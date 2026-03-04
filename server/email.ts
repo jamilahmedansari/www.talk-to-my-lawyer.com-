@@ -19,7 +19,7 @@ const APP_NAME = "Talk to My Lawyer";
 const BRAND_COLOR = "#2563EB"; // blue-600
 const BRAND_DARK = "#0F2744"; // deep navy
 const BRAND_ACCENT = "#1D4ED8"; // blue-700 for gradient
-const LOGO_URL = "https://files.manuscdn.com/user_upload_by_module/session_file/310419663031738932/OabHhALgbskSzGQq.png";
+const LOGO_URL = `${process.env.APP_BASE_URL || "https://www.talktomylawyer.com"}/logo.png`;
 
 // ─── HTML Template Builder ───────────────────────────────────────────────────
 

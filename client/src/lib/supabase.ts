@@ -21,7 +21,7 @@ export function getSupabaseClient(): SupabaseClient | null {
         params: { eventsPerSecond: 10 },
       },
       auth: {
-        // We use Manus OAuth, not Supabase Auth — disable auto session management
+        // We use server-side Supabase Auth — disable client auto session management
         autoRefreshToken: false,
         persistSession: false,
         detectSessionInUrl: false,

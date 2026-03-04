@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
-const LOGO_URL = "https://cdn.manus.im/projects/kkQq7ndgQAuTkTV73VVbNP/uploads/logo.png";
+const LOGO_URL = "/logo.png";
 
 type VerifyState = "loading" | "success" | "error" | "resend";
 

@@ -159,7 +159,7 @@ export default function Signup() {
           <div className="text-center mb-8">
             <Link href="/" className="inline-flex items-center gap-2 mb-4">
               <img
-                src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663031738932/OabHhALgbskSzGQq.png"
+                src="/logo.png"
                 alt="Talk to My Lawyer"
                 className="w-12 h-12 object-contain"
               />
@@ -217,7 +217,7 @@ export default function Signup() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 mb-4">
             <img
-              src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663031738932/OabHhALgbskSzGQq.png"
+              src="/logo.png"
               alt="Talk to My Lawyer"
               className="w-12 h-12 object-contain"
             />

@@ -25,14 +25,10 @@ import {
   Scale,
 } from "lucide-react";
 
-const LOGO_URL =
-  "https://files.manuscdn.com/user_upload_by_module/session_file/310419663031738932/OabHhALgbskSzGQq.png";
-const HERO_IMG =
-  "https://files.manuscdn.com/user_upload_by_module/session_file/310419663031738932/LHeNWpKDzWRwhFwy.png";
-const ATTORNEY_IMG =
-  "https://files.manuscdn.com/user_upload_by_module/session_file/310419663031738932/wTAWxOiXDYjhSjRZ.png";
-const SECURITY_IMG =
-  "https://files.manuscdn.com/user_upload_by_module/session_file/310419663031738932/AEuSMSBHmAViYbED.png";
+const LOGO_URL = "/logo.png";
+const HERO_IMG = "/images/screenshot-1.png";
+const ATTORNEY_IMG = "/images/screenshot-2.png";
+const SECURITY_IMG = "/images/screenshot-3.png";
 
 export default function Home() {
   const { user, isAuthenticated, loading } = useAuth();

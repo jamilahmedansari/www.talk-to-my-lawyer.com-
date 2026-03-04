@@ -2,7 +2,6 @@
  * Chat API Handler
  *
  * Express endpoint for AI SDK streaming chat with tool calling support.
- * Uses patched fetch to fix OpenAI-compatible proxy issues.
  */
 
 import { streamText, stepCountIs } from "ai";
@@ -11,20 +10,13 @@ import { createOpenAI } from "@ai-sdk/openai";
 import type { Express } from "express";
 import { z } from "zod/v4";
 import { ENV } from "./env";
-import { createPatchedFetch } from "./patchedFetch";
 
 /**
- * Creates an OpenAI-compatible provider with patched fetch.
+ * Creates an OpenAI provider using the direct API key.
  */
 function createLLMProvider() {
-  const baseURL = ENV.forgeApiUrl.endsWith("/v1")
-    ? ENV.forgeApiUrl
-    : `${ENV.forgeApiUrl}/v1`;
-
   return createOpenAI({
-    baseURL,
-    apiKey: ENV.forgeApiKey,
-    fetch: createPatchedFetch(fetch),
+    apiKey: ENV.openAiApiKey,
   });
 }
 

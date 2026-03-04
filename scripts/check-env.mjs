@@ -1,6 +1,9 @@
 import 'dotenv/config';
 
-console.log('ANTHROPIC_API_KEY set:', !!process.env.ANTHROPIC_API_KEY, process.env.ANTHROPIC_API_KEY ? `(starts with ${process.env.ANTHROPIC_API_KEY.substring(0,8)}...)` : '');
-console.log('PERPLEXITY_API_KEY set:', !!process.env.PERPLEXITY_API_KEY, process.env.PERPLEXITY_API_KEY ? `(starts with ${process.env.PERPLEXITY_API_KEY.substring(0,8)}...)` : '');
-console.log('BUILT_IN_FORGE_API_KEY set:', !!process.env.BUILT_IN_FORGE_API_KEY);
+console.log('OPENAI_API_KEY set:', !!process.env.OPENAI_API_KEY);
+console.log('PERPLEXITY_API_KEY set:', !!process.env.PERPLEXITY_API_KEY);
+console.log('SUPABASE_URL set:', !!process.env.SUPABASE_URL);
+console.log('SUPABASE_SERVICE_ROLE_KEY set:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
 console.log('DATABASE_URL set:', !!process.env.DATABASE_URL);
+console.log('STRIPE_SECRET_KEY set:', !!process.env.STRIPE_SECRET_KEY);
+console.log('RESEND_API_KEY set:', !!process.env.RESEND_API_KEY);

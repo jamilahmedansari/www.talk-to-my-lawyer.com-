@@ -140,7 +140,7 @@ export default function AppLayout({ children, title, breadcrumb, dynamicLabel }:
       <div className="p-6 border-b border-sidebar-border">
         <Link href="/" className="flex items-center gap-3">
           <img
-            src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663031738932/OabHhALgbskSzGQq.png"
+            src="/logo.png"
             alt="Talk to My Lawyer"
             className="w-10 h-10 object-contain flex-shrink-0"
           />
