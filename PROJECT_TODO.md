@@ -1,192 +1,23 @@
-# manus-talk-to-my-lawyer Development Patterns
+# Talk to My Lawyer — Project TODO Tracker
 
-> Auto-generated skill from repository analysis
-
-## Overview
-
-This skill teaches development patterns for manus-talk-to-my-lawyer, a TypeScript/Vite-based legal technology platform. The codebase follows a phase-based development approach with comprehensive testing, structured database migrations, and integrated payment processing. The application appears to be a full-stack platform supporting multiple user roles (subscribers, employees, attorneys, admins) with email notifications, Stripe payments, and tRPC API architecture.
-
-## Coding Conventions
-
-### File Naming
-- Use **camelCase** for all file names
-- Test files follow pattern: `*.test.*`
-- Phase-based test files: `phase*.test.ts`
-- Database migrations: `drizzle/####_*.sql`
-
-### Import/Export Style
-```typescript
-// Use alias imports
-import { something } from '@/shared/types'
-import { db } from '@/server/db'
-
-// Mixed export style - both named and default exports
-export const namedFunction = () => {}
-export default ComponentName
-```
-
-### Commit Messages
-- Average length: ~271 characters
-- Common prefixes: `checkpoint`, `docs`
-- Phase commits: `Phase X:` or `Checkpoint: Phase X:`
-- Freeform descriptive style
-
-## Workflows
-
-### Phase Checkpoint Commit
-**Trigger:** When finishing a major feature or improvement phase
-**Command:** `/complete-phase`
-
-1. Implement feature changes across multiple implementation files
-2. Add comprehensive test coverage in `server/phase*.test.ts`
-3. Run tests and validate all pass (document XXX/XXX tests passing)
-4. Confirm 0 TypeScript errors with `tsc --noEmit`
-5. Create checkpoint commit with descriptive message:
-   ```
-   Checkpoint: Phase X: [Feature description and testing summary]
-   
-   - Implemented [specific changes]
-   - Added tests covering [test scenarios]  
-   - XXX/XXX tests passing
-   - 0 TypeScript errors
-   ```
-6. Update `todo.md` with completed phase progress
-
-### Database Schema Migration
-**Trigger:** When adding new database fields or tables
-**Command:** `/add-db-column`
-
-1. Update `drizzle/schema.ts` with new schema definitions:
-   ```typescript
-   export const newTable = pgTable('new_table', {
-     id: serial('id').primaryKey(),
-     newColumn: text('new_column').notNull(),
-     createdAt: timestamp('created_at').defaultNow(),
-   });
-   ```
-2. Generate migration SQL file: `drizzle/####_description.sql`
-3. Update migration metadata in `drizzle/meta/*.json`
-4. Update `drizzle/meta/_journal.json` with new migration entry
-5. Apply migration to Supabase database (via MCP or direct SQL execution)
-6. Update `server/db.ts` with new query functions if needed:
-   ```typescript
-   export const getNewTableData = async (id: number) => {
-     return await db.select().from(newTable).where(eq(newTable.id, id));
-   };
-   ```
-
-### Email Template Integration
-**Trigger:** When adding new email notifications to the system
-**Command:** `/add-email-template`
-
-1. Add email template function to `server/email.ts`:
-   ```typescript
-   export const sendNewNotificationEmail = async (
-     to: string,
-     data: { name: string; details: string }
-   ) => {
-     // Branded email template implementation
-   };
-   ```
-2. Wire email sending into relevant tRPC procedures in `server/routers.ts`:
-   ```typescript
-   .mutation(async ({ input, ctx }) => {
-     const result = await someDbOperation(input);
-     
-     // Fire-and-forget email sending
-     sendNewNotificationEmail(input.email, result).catch(console.error);
-     
-     return result;
-   })
-   ```
-3. Add email template tests in `server/phase*.test.ts`
-4. Update `todo.md` with email integration status
-5. Ensure fire-and-forget error handling (errors caught and logged, don't block main flow)
-
-### Frontend Page Updates
-**Trigger:** When implementing frontend features that span multiple pages
-**Command:** `/update-frontend-pages`
-
-1. Update relevant page components in `client/src/pages/`:
-   ```typescript
-   // Ensure proper role-based rendering
-   if (user?.role === 'attorney') {
-     return <AttorneyView />;
-   }
-   ```
-2. Modify shared components if needed in `client/src/components/`
-3. Update routing in `client/src/App.tsx` if adding new routes
-4. Ensure responsive design and mobile compatibility
-5. Test across all user roles: subscriber, employee, attorney, admin
-6. Verify navigation and permissions work correctly
-
-### Stripe Payment Integration
-**Trigger:** When adding new payment flows or modifying pricing
-**Command:** `/update-stripe-integration`
-
-1. Update `server/stripe.ts` with new checkout logic:
-   ```typescript
-   export const createCheckoutSession = async (priceId: string) => {
-     return stripe.checkout.sessions.create({
-       // Checkout configuration
-     });
-   };
-   ```
-2. Modify `server/stripeWebhook.ts` for webhook handling:
-   ```typescript
-   case 'checkout.session.completed':
-     await handleCheckoutCompleted(event.data.object);
-     break;
-   ```
-3. Update `shared/pricing.ts` with new pricing constants
-4. Update frontend payment pages (`Pricing.tsx`, `Billing.tsx`, etc.)
-5. Add commission tracking in `server/db.ts` if needed
-6. Test payment flows end-to-end in Stripe test mode
-
-### Documentation Update
-**Trigger:** When documenting architecture, features, or development processes
-**Command:** `/update-docs`
-
-1. Create or update markdown files in `docs/` or root directory
-2. Update `README.md` with project overview and setup instructions
-3. Document system architecture in `ARCHITECTURE.md`
-4. Update `todo.md` with current progress and next steps
-5. Ensure documentation reflects current codebase state and deployment process
-6. Include code examples and configuration details
-
-### tRPC Procedure Addition
-**Trigger:** When adding new API endpoints for frontend consumption
-**Command:** `/add-trpc-procedure`
-
-1. Add procedure definition to `server/routers.ts` or modular router files:
-   ```typescript
-   newProcedure: publicProcedure
-     .input(z.object({
-       field: z.string(),
-     }))
-     .query(async ({ input, ctx }) => {
-       return await getSomeData(input.field);
-     }),
-   ```
-2. Add input validation with Zod schemas for type safety
-3. Implement database queries in `server/db.ts` if needed
-4. Add comprehensive tests in `server/phase*.test.ts`:
-   ```typescript
-   test('newProcedure returns expected data', async () => {
-     const result = await caller.newProcedure({ field: 'test' });
-     expect(result).toMatchObject({ /* expected shape */ });
-   });
-   ```
-5. Wire frontend calls to new procedures using tRPC hooks
-6. Ensure proper role-based access control with middleware
+> **Last Updated:** 2026-03-04
+> **Purpose:** Shared TODO list across all coding agents (GitHub Copilot, Claude, Codex, etc.)
+> **Usage:** Mark items as `[x]` when completed. All agents should continue from the last completed item.
+> **Synchronized Files:** This TODO is also tracked in:
+> - [`.github/copilot-instructions.md`](.github/copilot-instructions.md)
+> - [`.claude/skills/manus-talk-to-my-lawyer/SKILL.md`](.claude/skills/manus-talk-to-my-lawyer/SKILL.md)
+> - [`ARCHITECTURE.md`](ARCHITECTURE.md)
+> - [`todo.md`](todo.md)
 
 ---
 
-## Project TODO Tracker
+## Current Status: Phase 16 Complete ✅
 
-> **Last Updated:** 2026-03-04
-> **Purpose:** Shared TODO list across all coding agents (Claude, GitHub Copilot, Codex, etc.)
-> **Usage:** Mark items as `[x]` when completed. All agents should continue from the last completed item.
+**Latest Achievement:** Dev Email Preview Endpoint (38/38 tests passing, 0 TypeScript errors)
+
+---
+
+## TODO List
 
 ### Phase 1: Foundation
 - [x] Database schema (users roles, letter_requests, letter_versions, review_actions, workflow_jobs, research_runs, attachments, notifications)
@@ -361,24 +192,30 @@ export default ComponentName
 
 ---
 
-**Note:** This TODO list is synchronized across all documentation files. When completing items, update this section in all files to maintain consistency.
+## Next Steps
 
-## Testing Patterns
+**Recommended Next Phase:** Phase 13 - Dashboard Enhancement (Letters History & Payment Receipts)
 
-- Tests are organized by development phases: `phase*.test.ts`
-- Comprehensive test coverage expected for each phase
-- Test results documented in commit messages (XXX/XXX tests passing)
-- TypeScript compilation must pass (0 errors) before commits
-- Tests cover tRPC procedures, database operations, and email functionality
+**Key Tasks:**
+1. Audit current subscriber dashboard, MyLetters, and Billing pages
+2. Add backend: letters list with search/filter/sort/pagination (tRPC)
+3. Add backend: payment receipts list from Stripe invoices (tRPC)
+4. Rebuild MyLetters page as full Letters History
+5. Build Payment Receipts page with Stripe invoice history
+6. Enhance subscriber Dashboard with summary stats and activity feed
+7. Run tests, verify, save checkpoint
 
-## Commands
+---
 
-| Command | Purpose |
-|---------|---------|
-| `/complete-phase` | Complete a development phase with comprehensive testing and checkpoint commit |
-| `/add-db-column` | Add new database schema with proper Drizzle migration |
-| `/add-email-template` | Integrate new branded email notifications with fire-and-forget sending |
-| `/update-frontend-pages` | Update multiple frontend pages with role-based considerations |
-| `/update-stripe-integration` | Modify payment flows and webhook handling |
-| `/update-docs` | Create or update project documentation |
-| `/add-trpc-procedure` | Add new API endpoints with validation and testing |
+## Notes for Coding Agents
+
+- **Always check this file first** before starting work to understand current progress
+- **Update all synchronized files** when marking items as complete
+- **Run tests** before committing changes (current baseline: 38/38 passing)
+- **Check TypeScript compilation** (current baseline: 0 errors)
+- **Follow the coding conventions** in [`.github/copilot-instructions.md`](.github/copilot-instructions.md)
+- **Reference the architecture** in [`ARCHITECTURE.md`](ARCHITECTURE.md) for system design
+
+---
+
+**Last Sync:** 2026-03-04

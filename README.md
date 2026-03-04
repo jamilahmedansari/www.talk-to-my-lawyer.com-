@@ -10,9 +10,11 @@ A full-stack legal letter generation and review platform powered by AI. Users su
 
 | Document                                                                               | Purpose                                                                                   |
 | -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| **[PROJECT_TODO.md](PROJECT_TODO.md)**                                                 | **🎯 Centralized TODO tracker** — shared across all coding agents (Copilot, Claude, Codex) |
 | **[ARCHITECTURE.md](ARCHITECTURE.md)**                                                 | Complete codebase mapping — server modules, database schema, client structure, data flows |
 | **[CONTRIBUTING.md](CONTRIBUTING.md)**                                                 | Developer guide — setup, code style, feature workflow, testing, deployment                |
 | **[REFACTOR_ROADMAP.md](REFACTOR_ROADMAP.md)**                                         | Future improvements — 7 planned phases for code organization and quality                  |
+| **[.github/copilot-instructions.md](.github/copilot-instructions.md)**                 | GitHub Copilot coding conventions and project patterns                                    |
 | **[docs/skills/letter-generation-pipeline/](docs/skills/letter-generation-pipeline/)** | Canonical spec for 3-stage AI pipeline (research → draft → assembly)                      |
 | **[docs/skills/letter-review-pipeline/](docs/skills/letter-review-pipeline/)**         | Canonical spec for attorney review workflow and payment flow                              |
 | **[docs/TTML_REMAINING_FEATURES_PROMPT.md](docs/TTML_REMAINING_FEATURES_PROMPT.md)**   | Historical validation reference (see ARCHITECTURE.md for current state)                   |
