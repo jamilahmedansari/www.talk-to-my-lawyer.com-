@@ -41,6 +41,7 @@ import Signup from "./pages/Signup";
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 
 // ─── Lazy-loaded: Public pages ───
 const Pricing = lazy(() => import("./pages/Pricing"));
@@ -105,6 +106,12 @@ function Router() {
       <Route path="/reset-password">
         <Suspense fallback={<AuthPageSkeleton />}>
           <ResetPassword />
+        </Suspense>
+      </Route>
+      {/* OAuth callback — Supabase redirects here after Google / Apple sign-in */}
+      <Route path="/auth/callback">
+        <Suspense fallback={<AuthPageSkeleton />}>
+          <AuthCallback />
         </Suspense>
       </Route>
       <Route path="/onboarding">

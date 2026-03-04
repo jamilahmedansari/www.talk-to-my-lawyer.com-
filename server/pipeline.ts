@@ -26,7 +26,7 @@ import {
 import type { IntakeJson, ResearchPacket, DraftOutput } from "../shared/types";
 import { buildNormalizedPromptInput, type NormalizedPromptInput } from "./intake-normalizer";
 import { sendLetterReadyEmail } from "./email";
-import { getUserById, getLetterRequestById as getLetterById } from "./db";
+import { getUserById, getLetterRequestById as getLetterById, countCompletedLetters } from "./db";
 import { hasActiveRecurringSubscription } from "./stripe";
 import { captureServerException, addServerBreadcrumb } from "./sentry";
 
@@ -448,17 +448,21 @@ export async function runAssemblyStage(
     await updateLetterVersionPointers(letterId, { currentAiDraftVersionId: versionId });
     await updateWorkflowJob(jobId, { status: "completed", completedAt: new Date(), responsePayloadJson: { versionId } });
 
-    // Pipeline always ends at generated_locked — subscriber sees blurred draft and pays $200 to send for attorney review.
-    // Subscribers with active plans also land here; the paywall will offer them a free-unlock path.
+    // Determine final status: first letter is free (generated_unlocked), subsequent letters require payment (generated_locked).
     const letterRecord = await getLetterById(letterId);
-    const finalStatus = "generated_locked";
+    const priorLetterCount = letterRecord
+      ? await countCompletedLetters(letterRecord.userId, letterId)
+      : 1;
+    const finalStatus: string = priorLetterCount === 0 ? "generated_unlocked" : "generated_locked";
 
     await updateLetterStatus(letterId, finalStatus);
     await logReviewAction({
       letterRequestId: letterId,
       actorType: "system",
       action: "ai_pipeline_completed",
-      noteText: `Draft ready. Our legal team has completed research (Perplexity) and drafting (Anthropic). Submit for attorney review to receive your finalised letter.`,
+      noteText: finalStatus === "generated_unlocked"
+        ? `Draft ready. Your first letter is free — submit for attorney review at no cost to receive your finalised letter.`
+        : `Draft ready. Our legal team has completed research (Perplexity) and drafting (Anthropic). Submit for attorney review to receive your finalised letter.`,
       noteVisibility: "user_visible",
       fromStatus: "drafting",
       toStatus: finalStatus,

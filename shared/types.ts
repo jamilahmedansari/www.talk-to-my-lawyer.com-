@@ -10,8 +10,10 @@ export * from "./_core/errors";
 export const ALLOWED_TRANSITIONS: Record<string, string[]> = {
   submitted: ["researching"],
   researching: ["drafting"],
-  drafting: ["generated_locked"], // AI pipeline always ends here
+  drafting: ["generated_locked", "generated_unlocked"], // AI pipeline: generated_unlocked for first letter (free trial), generated_locked otherwise
   generated_locked: ["pending_review"], // subscriber pays $200 → Stripe webhook transitions to pending_review
+  generated_unlocked: ["pending_review", "upsell_dismissed"], // free trial: pay $100 upsell → pending_review, or dismiss → upsell_dismissed
+  upsell_dismissed: [], // terminal state: subscriber kept free copy, no further transitions
   pending_review: ["under_review"],
   under_review: ["approved", "rejected", "needs_changes"],
   needs_changes: ["researching", "drafting"],
@@ -27,7 +29,8 @@ export const STATUS_CONFIG: Record<string, { label: string; color: string; bgCol
   researching: { label: "Researching", color: "text-indigo-600", bgColor: "bg-indigo-100" },
   drafting: { label: "Drafting", color: "text-purple-600", bgColor: "bg-purple-100" },
   generated_locked: { label: "Draft Ready", color: "text-yellow-700", bgColor: "bg-yellow-100" },
-  generated_unlocked: { label: "Draft Ready", color: "text-yellow-700", bgColor: "bg-yellow-100" }, // legacy compat
+  generated_unlocked: { label: "Free Draft Ready", color: "text-emerald-700", bgColor: "bg-emerald-100" }, // free trial — subscriber can read full letter
+  upsell_dismissed: { label: "Free Copy Kept", color: "text-slate-600", bgColor: "bg-slate-100" }, // subscriber dismissed attorney review upsell
   pending_review: { label: "Awaiting Review", color: "text-amber-600", bgColor: "bg-amber-100" },
   under_review: { label: "Under Review", color: "text-orange-600", bgColor: "bg-orange-100" },
   needs_changes: { label: "Changes Requested", color: "text-red-600", bgColor: "bg-red-100" },

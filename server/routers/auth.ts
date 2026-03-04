@@ -7,7 +7,8 @@ import { TRPCError } from "@trpc/server";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "../_core/cookies";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
-import { updateUserRole, createDiscountCodeForEmployee } from "../db";
+import { updateUserRole, createDiscountCodeForEmployee, getUserById, getDiscountCodeByEmployeeId } from "../db";
+import { sendEmployeeWelcomeEmail, sendAttorneyWelcomeEmail } from "../email";
 
 export const authRouter = router({
   /** Returns the current authenticated user (null if not logged in) */
@@ -40,11 +41,39 @@ export const authRouter = router({
       await updateUserRole(userId, input.role);
 
       if (input.role === "employee") {
+        let discountCode: string | undefined;
         try {
           await createDiscountCodeForEmployee(userId, ctx.user.name || "affiliate");
+          const dc = await getDiscountCodeByEmployeeId(userId);
+          discountCode = dc?.code ?? undefined;
         } catch (e) {
           // Discount code may already exist if user re-onboards
           console.log("[Onboarding] Discount code creation skipped (may already exist)", e);
+          const dc = await getDiscountCodeByEmployeeId(userId).catch(() => null);
+          discountCode = dc?.code ?? undefined;
+        }
+        // Send employee welcome email with their affiliate code
+        const user = await getUserById(userId);
+        if (user?.email) {
+          const appUrl = process.env.APP_BASE_URL ?? "https://www.talk-to-my-lawyer.com";
+          sendEmployeeWelcomeEmail({
+            to: user.email,
+            name: user.name ?? "Employee",
+            discountCode,
+            dashboardUrl: `${appUrl}/employee/dashboard`,
+          }).catch((e) => console.error("[Onboarding] Employee welcome email failed:", e));
+        }
+      }
+
+      if (input.role === "attorney") {
+        const user = await getUserById(userId);
+        if (user?.email) {
+          const appUrl = process.env.APP_BASE_URL ?? "https://www.talk-to-my-lawyer.com";
+          sendAttorneyWelcomeEmail({
+            to: user.email,
+            name: user.name ?? "Attorney",
+            dashboardUrl: `${appUrl}/attorney/review`,
+          }).catch((e) => console.error("[Onboarding] Attorney welcome email failed:", e));
         }
       }
 

@@ -204,7 +204,7 @@ export default function AdminLetterDetail() {
             <CardTitle className="text-base">Letter Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <span className="text-muted-foreground">Type</span>
               <span className="font-medium">{l.letterType}</span>
               <span className="text-muted-foreground">Jurisdiction</span>

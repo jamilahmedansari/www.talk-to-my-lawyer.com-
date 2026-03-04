@@ -1,0 +1,68 @@
+server/routers/billing.ts(325,14): error TS1005: ',' expected.
+server/routers/billing.ts(325,16): error TS1005: ',' expected.
+server/routers/billing.ts(325,21): error TS1005: ',' expected.
+server/routers/billing.ts(325,28): error TS1005: ',' expected.
+server/routers/billing.ts(325,37): error TS1005: ',' expected.
+server/routers/billing.ts(325,41): error TS1005: ':' expected.
+server/routers/billing.ts(325,45): error TS1005: ',' expected.
+server/routers/billing.ts(325,54): error TS1005: ',' expected.
+server/routers/billing.ts(325,61): error TS1005: ',' expected.
+server/routers/billing.ts(325,67): error TS1005: ',' expected.
+server/routers/billing.ts(326,4): error TS1003: Identifier expected.
+server/routers/billing.ts(326,11): error TS1005: ',' expected.
+server/routers/billing.ts(326,21): error TS1005: ',' expected.
+server/routers/billing.ts(326,24): error TS1005: ',' expected.
+server/routers/billing.ts(326,48): error TS1005: ',' expected.
+server/routers/billing.ts(326,56): error TS1005: ',' expected.
+server/routers/billing.ts(326,63): error TS1005: ',' expected.
+server/routers/billing.ts(327,4): error TS1109: Expression expected.
+server/routers/billing.ts(327,5): error TS1161: Unterminated regular expression literal.
+server/routers/billing.ts(340,17): error TS1005: ',' expected.
+server/routers/billing.ts(340,89): error TS1005: ',' expected.
+server/routers/billing.ts(340,91): error TS1005: ';' expected.
+server/routers/billing.ts(354,6): error TS1128: Declaration or statement expected.
+server/routers/billing.ts(361,30): error TS1005: ';' expected.
+server/routers/billing.ts(400,11): error TS1005: ';' expected.
+server/routers/billing.ts(426,1): error TS1109: Expression expected.
+server/routers/billing.ts(426,2): error TS1128: Declaration or statement expected.
+server/stripe.ts(547,17): error TS1005: ',' expected.
+server/stripe.ts(548,7): error TS1137: Expression or comma expected.
+server/stripe.ts(549,5): error TS1135: Argument expression expected.
+server/stripe.ts(549,6): error TS1128: Declaration or statement expected.
+server/stripe.ts(553,16): error TS1005: ';' expected.
+server/stripe.ts(554,18): error TS1005: ';' expected.
+server/stripe.ts(555,20): error TS1005: ';' expected.
+server/stripe.ts(556,7): error TS1109: Expression expected.
+server/stripe.ts(556,8): error TS1128: Declaration or statement expected.
+server/stripe.ts(557,6): error TS1128: Declaration or statement expected.
+server/stripe.ts(559,15): error TS1005: ';' expected.
+server/stripe.ts(560,15): error TS1005: ';' expected.
+server/stripe.ts(561,3): error TS1109: Expression expected.
+server/stripe.ts(561,4): error TS1128: Declaration or statement expected.
+server/stripe.ts(564,1): error TS1128: Declaration or statement expected.
+server/stripeWebhook.ts(226,23): error TS1005: ':' expected.
+server/stripeWebhook.ts(226,96): error TS1005: ',' expected.
+server/stripeWebhook.ts(227,23): error TS1005: ':' expected.
+server/stripeWebhook.ts(227,115): error TS1005: ',' expected.
+server/stripeWebhook.ts(278,19): error TS1128: Declaration or statement expected.
+server/stripeWebhook.ts(278,24): error TS1005: ':' expected.
+server/stripeWebhook.ts(279,26): error TS1005: ',' expected.
+server/stripeWebhook.ts(279,148): error TS1005: ',' expected.
+server/stripeWebhook.ts(280,25): error TS1005: ':' expected.
+server/stripeWebhook.ts(282,51): error TS1005: ',' expected.
+server/stripeWebhook.ts(283,25): error TS1005: ':' expected.
+server/stripeWebhook.ts(286,25): error TS1005: ',' expected.
+server/stripeWebhook.ts(287,25): error TS1005: ':' expected.
+server/stripeWebhook.ts(287,92): error TS1005: ',' expected.
+server/stripeWebhook.ts(288,23): error TS1003: Identifier expected.
+server/stripeWebhook.ts(296,19): error TS1005: ',' expected.
+server/stripeWebhook.ts(309,19): error TS1005: ',' expected.
+server/stripeWebhook.ts(309,26): error TS1005: ',' expected.
+server/stripeWebhook.ts(309,114): error TS1005: ',' expected.
+server/stripeWebhook.ts(311,19): error TS1005: ',' expected.
+server/stripeWebhook.ts(312,26): error TS1005: ',' expected.
+server/stripeWebhook.ts(312,151): error TS1005: ',' expected.
+server/stripeWebhook.ts(314,15): error TS1005: ',' expected.
+server/stripeWebhook.ts(314,17): error TS1005: 'try' expected.
+server/stripeWebhook.ts(318,11): error TS1472: 'catch' or 'finally' expected.
+server/stripeWebhook.ts(383,7): error TS1128: Declaration or statement expected.

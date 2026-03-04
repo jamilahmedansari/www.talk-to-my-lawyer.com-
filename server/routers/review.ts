@@ -32,6 +32,7 @@ import {
   sendLetterRejectedEmail,
   sendNeedsChangesEmail,
   sendReviewAssignedEmail,
+  sendReviewCompletedEmail,
   sendStatusUpdateEmail,
 } from "../email";
 import { retryPipelineFromStage } from "../pipeline";
@@ -260,8 +261,8 @@ export const reviewRouter = router({
         });
       }
 
-      // Generate PDF and upload to S3 (non-blocking on failure)
-      let pdfUrl: string | undefined;
+      // Generate PDF, upload to Supabase private storage, store path (non-blocking on failure)
+      let pdfStoragePath: string | undefined;
       try {
         const pdfResult = await generateAndUploadApprovedPdf({
           letterId: input.letterId,
@@ -274,9 +275,9 @@ export const reviewRouter = router({
           jurisdictionCountry: letter.jurisdictionCountry,
           intakeJson: letter.intakeJson as any,
         });
-        pdfUrl = pdfResult.pdfUrl;
-        await updateLetterPdfUrl(input.letterId, pdfUrl);
-        console.log(`[Approve] PDF generated for letter #${input.letterId}: ${pdfUrl}`);
+        pdfStoragePath = pdfResult.pdfKey;
+        await updateLetterPdfUrl(input.letterId, pdfStoragePath);
+        console.log(`[Approve] PDF stored at path: ${pdfStoragePath} for letter #${input.letterId}`);
       } catch (pdfErr) {
         console.error(`[Approve] PDF generation failed for letter #${input.letterId}:`, pdfErr);
         captureServerException(pdfErr instanceof Error ? pdfErr : new Error(String(pdfErr)), {
@@ -285,7 +286,7 @@ export const reviewRouter = router({
         });
       }
 
-      // Notify subscriber
+      // Notify subscriber — email directs to in-app download (no raw PDF URL exposed)
       try {
         const appUrl = getAppUrl(ctx.req);
         const subscriber = await getUserById(letter.userId);
@@ -296,22 +297,34 @@ export const reviewRouter = router({
             subject: letter.subject,
             letterId: input.letterId,
             appUrl,
-            pdfUrl,
+            pdfUrl: undefined, // Subscriber downloads via secure signed URL in the app
           });
         }
         await createNotification({
           userId: letter.userId,
           type: "letter_approved",
           title: "Your letter has been approved!",
-          body: `Your letter "${letter.subject}" is ready to download.${pdfUrl ? " A PDF copy is available." : ""}`,
+          body: `Your letter "${letter.subject}" is ready to download.${pdfStoragePath ? " A PDF copy is available in your account." : ""}`,
           link: `/letters/${input.letterId}`,
         });
+        // Notify the reviewing attorney that their review is complete
+        if (ctx.user.email) {
+          const appUrl2 = getAppUrl(ctx.req);
+          sendReviewCompletedEmail({
+            to: ctx.user.email,
+            name: ctx.user.name ?? "Attorney",
+            letterSubject: letter.subject,
+            letterId: input.letterId,
+            action: "approved",
+            appUrl: appUrl2,
+          }).catch((e) => console.error("[Notify] Review completed email failed:", e));
+        }
       } catch (err) {
         console.error("[Notify] Approve notification failed:", err);
         captureServerException(err instanceof Error ? err : new Error(String(err)));
       }
 
-      return { success: true, versionId, pdfUrl };
+      return { success: true, versionId };
     }),
 
   /**

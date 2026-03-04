@@ -25,13 +25,14 @@ import {
   updateLetterStatus,
   archiveLetterRequest,
   createNotification,
+  getAttachmentById,
 } from "../db";
 import {
   sendLetterSubmissionEmail,
   sendJobFailedAlertEmail,
 } from "../email";
 import { runFullPipeline, retryPipelineFromStage } from "../pipeline";
-import { storagePut } from "../storage";
+import { storagePut, storageGetSignedUrl } from "../storage";
 
 /** Intake form Zod schema — shared between submit and updateForChanges */
 const intakeJsonSchema = z.object({
@@ -326,19 +327,61 @@ export const lettersRouter = router({
         throw new TRPCError({ code: "NOT_FOUND" });
 
       const buffer = Buffer.from(input.base64Data, "base64");
-      const key = `attachments/${ctx.user.id}/${input.letterId}/${Date.now()}-${input.fileName}`;
-      const { url } = await storagePut(key, buffer, input.mimeType);
+      const filePath = `attachments/${ctx.user.id}/${input.letterId}/${Date.now()}-${input.fileName}`;
+      // Upload to private Supabase Storage bucket — returns path only, no public URL
+      const { path } = await storagePut(filePath, buffer, input.mimeType, "attachments");
 
       await createAttachment({
         letterRequestId: input.letterId,
         uploadedByUserId: ctx.user.id,
-        storagePath: key,
-        storageUrl: url,
+        storagePath: path,
         fileName: input.fileName,
         mimeType: input.mimeType,
         sizeBytes: buffer.length,
       });
 
-      return { url, key };
+      // Return the storage path; the client must call getAttachmentSignedUrl to get a download URL
+      return { path };
+    }),
+
+  /**
+   * Generates a short-lived signed URL for a private attachment.
+   * Only the subscriber who owns the letter can access their attachments.
+   * URL expires in 1 hour.
+   */
+  getAttachmentSignedUrl: subscriberProcedure
+    .input(z.object({ attachmentId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const attachment = await getAttachmentById(input.attachmentId);
+      if (!attachment) throw new TRPCError({ code: "NOT_FOUND", message: "Attachment not found" });
+
+      // Verify the attachment belongs to a letter owned by this subscriber
+      const letter = await getLetterRequestById(attachment.letterRequestId);
+      if (!letter || letter.userId !== ctx.user.id) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+      }
+
+      const jwt = ctx.req.headers.authorization?.replace("Bearer ", "") ?? "";
+      const { url } = await storageGetSignedUrl(jwt, "attachments", attachment.storagePath, 3600);
+      return { url, fileName: attachment.fileName };
+    }),
+
+  /**
+   * Generates a short-lived signed URL for an approved letter PDF.
+   * Only the subscriber who owns the letter can access their PDF.
+   * URL expires in 1 hour.
+   */
+  getApprovedPdfSignedUrl: subscriberProcedure
+    .input(z.object({ letterId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const letter = await getLetterRequestSafeForSubscriber(input.letterId, ctx.user.id);
+      if (!letter) throw new TRPCError({ code: "NOT_FOUND", message: "Letter not found" });
+      if (!letter.pdfStoragePath) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "PDF not yet available for this letter" });
+      }
+
+      const jwt = ctx.req.headers.authorization?.replace("Bearer ", "") ?? "";
+      const { url } = await storageGetSignedUrl(jwt, "approved-letters", letter.pdfStoragePath, 3600);
+      return { url };
     }),
 });

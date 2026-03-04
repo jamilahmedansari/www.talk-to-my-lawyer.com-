@@ -2,12 +2,12 @@
  * Admin Router
  * Handles: system stats, user management, letter oversight, pipeline job management.
  *
- * Access: admin role only (via adminProcedure from _core/trpc)
+ * Access: admin role only (via centralized RBAC policy in _guards)
  */
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { adminProcedure, router } from "../_core/trpc";
-import { getAppUrl } from "./_guards";
+import { router } from "../_core/trpc";
+import { adminProcedure, getAppUrl } from "./_guards";
 import {
   getAllLetterRequests,
   getAllUsers,
@@ -37,7 +37,9 @@ export const adminRouter = router({
     .input(
       z
         .object({
-          role: z.enum(["subscriber", "employee", "admin", "attorney"]).optional(),
+          role: z
+            .enum(["subscriber", "employee", "admin", "attorney"])
+            .optional(),
         })
         .optional()
     )
@@ -59,7 +61,9 @@ export const adminRouter = router({
   /** Returns all letter requests, optionally filtered by status */
   allLetters: adminProcedure
     .input(z.object({ status: z.string().optional() }).optional())
-    .query(async ({ input }) => getAllLetterRequests({ status: input?.status })),
+    .query(async ({ input }) =>
+      getAllLetterRequests({ status: input?.status })
+    ),
 
   /** Returns all failed workflow jobs (up to 100) */
   failedJobs: adminProcedure.query(async () => getFailedJobs(100)),
@@ -79,12 +83,20 @@ export const adminRouter = router({
       const letter = await getLetterRequestById(input.letterId);
       if (!letter) throw new TRPCError({ code: "NOT_FOUND" });
       if (!letter.intakeJson)
-        throw new TRPCError({ code: "BAD_REQUEST", message: "No intake data found" });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "No intake data found",
+        });
 
-      retryPipelineFromStage(input.letterId, letter.intakeJson as any, input.stage).catch(
-        console.error
-      );
-      return { success: true, message: `Retry started for stage: ${input.stage}` };
+      retryPipelineFromStage(
+        input.letterId,
+        letter.intakeJson as any,
+        input.stage
+      ).catch(console.error);
+      return {
+        success: true,
+        message: `Retry started for stage: ${input.stage}`,
+      };
     }),
 
   /**
@@ -111,8 +123,13 @@ export const adminRouter = router({
         });
       }
 
-      runFullPipeline(input.letterId, letter.intakeJson as any).catch(console.error);
-      return { success: true, message: `Full pipeline triggered for letter #${input.letterId}` };
+      runFullPipeline(input.letterId, letter.intakeJson as any).catch(
+        console.error
+      );
+      return {
+        success: true,
+        message: `Full pipeline triggered for letter #${input.letterId}`,
+      };
     }),
 
   /** Purges all failed workflow jobs from the database */
@@ -145,7 +162,7 @@ export const adminRouter = router({
         getWorkflowJobsByLetterId(input.letterId),
       ]);
 
-      const aiDraftVersion = versions.find((v) => v.versionType === "ai_draft");
+      const aiDraftVersion = versions.find(v => v.versionType === "ai_draft");
       return {
         ...letter,
         aiDraftContent: aiDraftVersion?.content ?? null,

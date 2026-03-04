@@ -43,6 +43,24 @@ queryClient.getMutationCache().subscribe(event => {
   }
 });
 
+
+const installAnalyticsScript = () => {
+  const endpoint = import.meta.env.VITE_ANALYTICS_ENDPOINT;
+  const websiteId = import.meta.env.VITE_ANALYTICS_WEBSITE_ID;
+
+  if (!endpoint || !websiteId) {
+    return;
+  }
+
+  const script = document.createElement("script");
+  script.defer = true;
+  script.src = `${String(endpoint).replace(/\/$/, "")}/umami`;
+  script.dataset.websiteId = websiteId;
+  document.body.appendChild(script);
+};
+
+installAnalyticsScript();
+
 const trpcClient = trpc.createClient({
   links: [
     httpBatchLink({

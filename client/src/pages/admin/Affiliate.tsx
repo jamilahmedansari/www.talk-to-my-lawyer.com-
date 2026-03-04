@@ -167,7 +167,7 @@ export default function AdminAffiliate() {
 
         {/* Tabs */}
         <Tabs defaultValue="performance" className="space-y-4">
-          <TabsList className="grid grid-cols-4 w-full max-w-xl">
+          <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full max-w-xl">
             <TabsTrigger value="performance"><BarChart3 className="w-3.5 h-3.5 mr-1" />Performance</TabsTrigger>
             <TabsTrigger value="codes"><Gift className="w-3.5 h-3.5 mr-1" />Codes</TabsTrigger>
             <TabsTrigger value="commissions"><DollarSign className="w-3.5 h-3.5 mr-1" />Commissions</TabsTrigger>

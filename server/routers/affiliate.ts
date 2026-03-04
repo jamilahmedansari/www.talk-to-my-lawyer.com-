@@ -6,8 +6,8 @@
  */
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { adminProcedure, router } from "../_core/trpc";
-import { employeeProcedure } from "./_guards";
+import { router } from "../_core/trpc";
+import { adminProcedure, employeeProcedure } from "./_guards";
 import {
   createDiscountCodeForEmployee,
   createPayoutRequest,
@@ -33,7 +33,10 @@ export const affiliateRouter = router({
   myCode: employeeProcedure.query(async ({ ctx }) => {
     let code = await getDiscountCodeByEmployeeId(ctx.user.id);
     if (!code) {
-      code = await createDiscountCodeForEmployee(ctx.user.id, ctx.user.name ?? "EMP");
+      code = await createDiscountCodeForEmployee(
+        ctx.user.id,
+        ctx.user.name ?? "EMP"
+      );
     }
     return code;
   }),
@@ -150,12 +153,17 @@ export const affiliateRouter = router({
       const payout = await getPayoutRequestById(input.payoutId);
       if (!payout) throw new TRPCError({ code: "NOT_FOUND" });
       if (payout.status !== "pending") {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Payout already processed" });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Payout already processed",
+        });
       }
 
       if (input.action === "completed") {
         const commissions = await getCommissionsByEmployeeId(payout.employeeId);
-        const pendingIds = commissions.filter((c) => c.status === "pending").map((c) => c.id);
+        const pendingIds = commissions
+          .filter(c => c.status === "pending")
+          .map(c => c.id);
         if (pendingIds.length > 0) {
           await markCommissionsPaid(pendingIds);
         }
@@ -181,10 +189,10 @@ export const affiliateRouter = router({
       getAllEmployeeEarnings(),
     ]);
 
-    const codesByEmployee = new Map(allCodes.map((c) => [c.employeeId, c]));
-    const earningsByEmployee = new Map(allEarnings.map((e) => [e.employeeId, e]));
+    const codesByEmployee = new Map(allCodes.map(c => [c.employeeId, c]));
+    const earningsByEmployee = new Map(allEarnings.map(e => [e.employeeId, e]));
 
-    return employees.map((emp) => {
+    return employees.map(emp => {
       const code = codesByEmployee.get(emp.id);
       const earnings = earningsByEmployee.get(emp.id);
       return {

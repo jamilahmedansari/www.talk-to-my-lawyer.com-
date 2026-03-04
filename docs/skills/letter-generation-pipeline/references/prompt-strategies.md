@@ -1,5 +1,7 @@
 # Prompt Strategies Reference
 
+> **⚠️ Schema Changes:** All schema changes must be applied via Drizzle migrations. Follow the `drizzle/migrations/000X_description.sql` naming convention.
+
 ## Table of Contents
 - [Stage 1: Research Prompt](#stage-1-research-prompt)
 - [Stage 2: Drafting Prompt](#stage-2-drafting-prompt)
@@ -203,3 +205,13 @@ Client: Anthropic SDK (`@anthropic-ai/sdk`)
 
 ### Fallback Research (When Perplexity unavailable)
 Uses Anthropic Claude with the same research prompt but without web search grounding. Less accurate for current statutes but functional.
+
+---
+
+## Agent Init (Required)
+
+Initialize each agent run with the active issue register (`agentId: a28925291b7edfefb`) and prioritize fixes in this order:
+
+1. Critical: type safety (`as any` removal), verified-email route enforcement with typed user fields, localStorage error visibility, SPA-safe navigation, attachment/submission error recovery.
+2. High: upload security validation, auth race handling, draft-save debouncing, theme hydration consistency, suspense error boundaries, polling/realtime race mitigation.
+3. Medium/Low: configurable assets, pagination, accessibility, optimistic cache updates, production logging hygiene, status enum centralization, form-state refactors.

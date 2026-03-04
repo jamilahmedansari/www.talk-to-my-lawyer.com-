@@ -2,6 +2,7 @@ import AppLayout from "@/components/shared/AppLayout";
 import StatusBadge from "@/components/shared/StatusBadge";
 import StatusTimeline from "@/components/shared/StatusTimeline";
 import { LetterPaywall } from "@/components/LetterPaywall";
+import { LetterFreeTrialUpsell } from "@/components/LetterFreeTrialUpsell";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +16,46 @@ import { useLetterRealtime } from "@/hooks/useLetterRealtime";
 
 // Statuses that require active polling (pipeline in progress or awaiting action)
 const POLLING_STATUSES = ["submitted", "researching", "drafting", "pending_review", "under_review"];
+
+/**
+ * Renders a single attachment as a button that fetches a signed URL on click.
+ * Avoids storing or exposing any raw storage URLs in the DOM.
+ */
+function AttachmentDownloadButton({ attachmentId, fileName }: { attachmentId: number; fileName: string }) {
+  const [isFetching, setIsFetching] = useState(false);
+  const signedUrlQuery = trpc.letters.getAttachmentSignedUrl.useQuery(
+    { attachmentId },
+    { enabled: false }
+  );
+
+  const handleClick = async () => {
+    setIsFetching(true);
+    try {
+      const result = await signedUrlQuery.refetch();
+      if (result.data?.url) {
+        window.open(result.data.url, "_blank");
+      } else {
+        toast.error("Could not open attachment", { description: "Please try again." });
+      }
+    } catch {
+      toast.error("Could not open attachment", { description: "Please try again." });
+    } finally {
+      setIsFetching(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleClick}
+      disabled={isFetching}
+      className="flex items-center gap-3 p-2.5 bg-muted/50 rounded-lg hover:bg-muted transition-colors w-full text-left disabled:opacity-60"
+    >
+      <FileText className="w-4 h-4 text-primary flex-shrink-0" />
+      <span className="text-sm text-foreground flex-1 truncate">{fileName}</span>
+      <Download className="w-3.5 h-3.5 text-muted-foreground" />
+    </button>
+  );
+}
 
 export default function LetterDetail() {
   const params = useParams<{ id: string }>();
@@ -117,10 +158,24 @@ export default function LetterDetail() {
     updateMutation.mutate({ letterId, additionalContext: updateText });
   };
 
-  const handleDownloadPdf = () => {
-    if (data?.letter?.pdfUrl) {
-      window.open(data.letter.pdfUrl, "_blank");
-      return;
+  // Fetch a signed URL on demand — never stored in the DB
+  const pdfSignedUrlQuery = trpc.letters.getApprovedPdfSignedUrl.useQuery(
+    { letterId },
+    { enabled: false } // Only fires when explicitly refetched
+  );
+
+  const handleDownloadPdf = async () => {
+    if (data?.letter?.pdfStoragePath) {
+      try {
+        const result = await pdfSignedUrlQuery.refetch();
+        if (result.data?.url) {
+          window.open(result.data.url, "_blank");
+          return;
+        }
+      } catch {
+        toast.error("Could not generate download link", { description: "Please try again." });
+        return;
+      }
     }
     handleDownloadFallback();
   };
@@ -209,6 +264,7 @@ export default function LetterDetail() {
   const userVisibleActions = actions?.filter((a) => a.noteVisibility === "user_visible" && a.noteText);
   const isPolling = POLLING_STATUSES.includes(letter.status);
   const isGeneratedLocked = letter.status === "generated_locked";
+  const isGeneratedUnlocked = letter.status === "generated_unlocked";
 
   return (
     <AppLayout breadcrumb={[{ label: "My Letters", href: "/letters" }, { label: letter.subject }]}>
@@ -247,9 +303,9 @@ export default function LetterDetail() {
                     <Copy className="w-4 h-4 mr-1" />
                     Copy
                   </Button>
-                  <Button onClick={handleDownloadPdf} size="sm" className="flex-1 sm:flex-initial">
+                  <Button onClick={handleDownloadPdf} size="sm" className="flex-1 sm:flex-initial" disabled={pdfSignedUrlQuery.isFetching}>
                     <Download className="w-4 h-4 mr-1" />
-                    {(data?.letter as any)?.pdfUrl ? "Download PDF" : "Download"}
+                    {pdfSignedUrlQuery.isFetching ? "Preparing..." : (data?.letter?.pdfStoragePath ? "Download PDF" : "Download")}
                   </Button>
                 </>
               )}
@@ -301,6 +357,15 @@ export default function LetterDetail() {
             letterType={letter.letterType}
             subject={letter.subject}
             draftContent={aiDraftVersion?.content ?? undefined}
+          />
+        )}
+
+        {/* ── FREE TRIAL: generated_unlocked — full draft + optional $100 upsell ── */}
+        {isGeneratedUnlocked && (
+          <LetterFreeTrialUpsell
+            letterId={letterId}
+            letterType={letter.letterType}
+            subject={letter.subject}
           />
         )}
 
@@ -399,9 +464,9 @@ export default function LetterDetail() {
                     <Copy className="w-3.5 h-3.5 mr-1.5" />
                     Copy
                   </Button>
-                  <Button onClick={handleDownloadPdf} size="sm" variant="outline" className="bg-background border-green-300 text-green-700 hover:bg-green-50">
+                  <Button onClick={handleDownloadPdf} size="sm" variant="outline" className="bg-background border-green-300 text-green-700 hover:bg-green-50" disabled={pdfSignedUrlQuery.isFetching}>
                     <Download className="w-3.5 h-3.5 mr-1.5" />
-                    {(data?.letter as any)?.pdfUrl ? "Download PDF" : "Download"}
+                    {pdfSignedUrlQuery.isFetching ? "Preparing..." : (data?.letter?.pdfStoragePath ? "Download PDF" : "Download")}
                   </Button>
                 </div>
               </div>
@@ -441,17 +506,7 @@ export default function LetterDetail() {
             </CardHeader>
             <CardContent className="space-y-2">
               {attachments.map((att) => (
-                <a
-                  key={att.id}
-                  href={att.storageUrl ?? "#"}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-3 p-2.5 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
-                >
-                  <FileText className="w-4 h-4 text-primary flex-shrink-0" />
-                  <span className="text-sm text-foreground flex-1 truncate">{att.fileName ?? "Attachment"}</span>
-                  <Download className="w-3.5 h-3.5 text-muted-foreground" />
-                </a>
+                <AttachmentDownloadButton key={att.id} attachmentId={att.id} fileName={att.fileName ?? "Attachment"} />
               ))}
             </CardContent>
           </Card>

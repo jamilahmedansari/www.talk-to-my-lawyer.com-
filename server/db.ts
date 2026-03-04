@@ -180,7 +180,7 @@ export async function getLetterRequestSafeForSubscriber(id: number, userId: numb
     status: letterRequests.status,
     priority: letterRequests.priority,
     currentFinalVersionId: letterRequests.currentFinalVersionId,
-    pdfUrl: letterRequests.pdfUrl,
+    pdfStoragePath: letterRequests.pdfStoragePath,
     lastStatusChangedAt: letterRequests.lastStatusChangedAt,
     createdAt: letterRequests.createdAt,
     updatedAt: letterRequests.updatedAt,
@@ -221,6 +221,35 @@ export async function updateLetterStatus(
   await db.update(letterRequests).set(updateData as any).where(eq(letterRequests.id, id));
 }
 
+/**
+ * Atomic compare-and-set for letter status.
+ * Only updates the row when the current status matches `expectedStatus`.
+ * Returns `true` if the row was updated, `false` if the status had already changed.
+ * Use this instead of updateLetterStatus in webhook/concurrent handlers to prevent
+ * duplicate side-effects on retries.
+ */
+export async function updateLetterStatusIfCurrent(
+  id: number,
+  expectedStatus: string,
+  newStatus: string,
+  options?: { assignedReviewerId?: number | null }
+): Promise<boolean> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const updateData: Record<string, unknown> = {
+    status: newStatus,
+    lastStatusChangedAt: new Date(),
+    updatedAt: new Date(),
+  };
+  if (options?.assignedReviewerId !== undefined) updateData.assignedReviewerId = options.assignedReviewerId;
+  const result = await db
+    .update(letterRequests)
+    .set(updateData as any)
+    .where(and(eq(letterRequests.id, id), eq(letterRequests.status as any, expectedStatus)))
+    .returning({ id: letterRequests.id });
+  return result.length > 0;
+}
+
 export async function updateLetterVersionPointers(
   id: number,
   pointers: { currentAiDraftVersionId?: number; currentFinalVersionId?: number }
@@ -247,10 +276,15 @@ export async function claimLetterForReview(letterId: number, reviewerId: number)
   }).where(eq(letterRequests.id, letterId));
 }
 
-export async function updateLetterPdfUrl(id: number, pdfUrl: string) {
+export async function updateLetterPdfStoragePath(id: number, pdfStoragePath: string) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.update(letterRequests).set({ pdfUrl, updatedAt: new Date() } as any).where(eq(letterRequests.id, id));
+  await db.update(letterRequests).set({ pdfStoragePath, updatedAt: new Date() } as any).where(eq(letterRequests.id, id));
+}
+
+/** @deprecated Use updateLetterPdfStoragePath instead */
+export async function updateLetterPdfUrl(id: number, pdfStoragePath: string) {
+  return updateLetterPdfStoragePath(id, pdfStoragePath);
 }
 
 export async function archiveLetterRequest(id: number, userId: number) {
@@ -517,7 +551,6 @@ export async function createAttachment(data: {
   letterRequestId: number;
   uploadedByUserId: number;
   storagePath: string;
-  storageUrl?: string;
   fileName: string;
   mimeType?: string;
   sizeBytes?: number;
@@ -532,6 +565,13 @@ export async function getAttachmentsByLetterId(letterRequestId: number) {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(attachments).where(eq(attachments.letterRequestId, letterRequestId)).orderBy(attachments.createdAt);
+}
+
+export async function getAttachmentById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(attachments).where(eq(attachments.id, id)).limit(1);
+  return result[0];
 }
 
 // ═══════════════════════════════════════════════════════

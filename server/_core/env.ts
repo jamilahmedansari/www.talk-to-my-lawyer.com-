@@ -1,6 +1,10 @@
 export const ENV = {
   ownerOpenId: process.env.OWNER_OPEN_ID ?? "",
   isProduction: process.env.NODE_ENV === "production",
+  // Supabase
+  supabaseUrl: process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? "",
+  supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
+  supabaseAnonKey: process.env.VITE_SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? "",
   // AI Pipeline
   openAiApiKey: process.env.OPENAI_API_KEY ?? "",
   perplexityApiKey: process.env.PERPLEXITY_API_KEY ?? "",

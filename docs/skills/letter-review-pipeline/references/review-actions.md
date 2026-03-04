@@ -1,5 +1,7 @@
 # Review Actions Reference
 
+> **⚠️ Schema Changes:** All schema changes must be applied via Drizzle migrations. Follow the `drizzle/migrations/000X_description.sql` naming convention.
+
 ## Table of Contents
 - [Action Types](#action-types)
 - [Visibility Rules](#visibility-rules)
@@ -14,7 +16,7 @@ All actions logged via `logReviewAction()` in `server/db.ts`:
 
 | Action | Actor | Visibility | When |
 |--------|-------|-----------|------|
-| `claimed` | attorney | internal | Attorney claims letter from queue |
+| `claimed_for_review` | attorney | internal | Attorney claims letter from queue |
 | `attorney_edit_saved` | attorney | internal | Attorney saves inline edit |
 | `approved` | attorney | internal | Attorney approves letter |
 | `attorney_note` | attorney | user_visible | Attorney adds note visible to subscriber |
@@ -84,3 +86,13 @@ The subscriber never sees:
 - Subscribers can view `final_approved` versions always
 - Subscribers can view `ai_draft` only when letter is `generated_locked` (paywall preview)
 - All other version types are forbidden for subscribers
+
+---
+
+## Agent Init (Required)
+
+Initialize agent context with issue register `agentId: a28925291b7edfefb` before modifying review actions.
+
+- Critical: preserve strict typed guards, especially email verification and role checks.
+- Eliminate unsafe cast patterns and surface operational errors to users.
+- Keep status constants centralized to reduce magic-string drift across review UI.

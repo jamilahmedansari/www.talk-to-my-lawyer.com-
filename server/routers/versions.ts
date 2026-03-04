@@ -12,6 +12,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../_core/trpc";
+import { hasPolicyAccess } from "../_core/context";
 import { getLetterRequestById, getLetterVersionById } from "../db";
 
 export const versionsRouter = router({
@@ -21,6 +22,10 @@ export const versionsRouter = router({
     .query(async ({ ctx, input }) => {
       const version = await getLetterVersionById(input.id);
       if (!version) throw new TRPCError({ code: "NOT_FOUND" });
+
+      if (!hasPolicyAccess(ctx.user.role, "versions", "read")) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+      }
 
       if (ctx.user.role === "subscriber") {
         // Subscribers can always view final_approved versions

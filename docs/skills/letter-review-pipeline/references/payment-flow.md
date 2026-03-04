@@ -1,10 +1,12 @@
 # Payment & Paywall Flow Reference
 
+> **⚠️ Schema Changes:** All schema changes must be applied via Drizzle migrations. Follow the `drizzle/migrations/000X_description.sql` naming convention.
+
 ## Table of Contents
 - [Paywall States](#paywall-states)
 - [Free Unlock Flow](#free-unlock-flow)
 - [Pay-Per-Letter Flow](#pay-per-letter-flow)
-- [Trial Review Flow](#trial-review-flow)
+- [Trial Review Upsell Flow](#trial-review-upsell-flow)
 - [Subscription Bypass](#subscription-bypass)
 - [Stripe Webhook Processing](#stripe-webhook-processing)
 - [Discount Codes & Affiliate](#discount-codes--affiliate)
@@ -90,20 +92,20 @@ Stripe webhook: checkout.session.completed
 
 ---
 
-## Trial Review Flow
+## Trial Review Upsell Flow
 
-**Procedure:** `billing.payTrialReview`
+**Procedure:** `billing.createAttorneyReviewCheckout`
 **Guard:** `subscriberProcedure`
-**Price:** $50
+**Price:** $100
 
 ```
-Subscriber clicks "Pay $50 for Attorney Review"
+Subscriber clicks "Pay $100 for Attorney Review"
     │
     ▼
-billing.payTrialReview({ letterId, discountCode? })
+billing.createAttorneyReviewCheckout({ letterId })
     │
     ├─ Verify letter is generated_unlocked
-    ├─ Create Stripe checkout session ($50)
+    ├─ Create Stripe checkout session ($100)
     │
     └─ Return { sessionId, url } → redirect to Stripe
     
@@ -174,3 +176,13 @@ When a subscriber uses a discount code at checkout:
 - `discount_codes` — code, employeeId, discountPercent, usageCount, maxUses, isActive
 - `commission_ledger` — employeeId, transactionId, amount, status (pending/paid)
 - `payout_requests` — employeeId, amount, status (pending/completed/rejected), paymentMethod
+
+---
+
+## Agent Init (Required)
+
+Before implementation, initialize from the active issue register (`agentId: a28925291b7edfefb`).
+
+- Prioritize critical correctness: typed auth/email verification, removal of unsafe casts, and explicit upload/submission/localStorage error handling.
+- Keep navigation SPA-safe (no direct full reload redirects unless explicitly required).
+- Plan follow-up for pagination, accessibility, and optimistic mutation UX.

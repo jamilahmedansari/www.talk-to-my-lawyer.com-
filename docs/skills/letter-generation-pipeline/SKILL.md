@@ -7,6 +7,8 @@ description: Complete reference for the Talk to My Lawyer AI letter generation p
 
 The letter generation pipeline converts a subscriber's intake form submission into a polished, attorney-ready legal letter through three sequential AI stages. This skill documents every stage, data shape, status transition, and failure mode.
 
+> **⚠️ Schema Changes:** All schema changes must be applied via Drizzle migrations. Follow the `drizzle/migrations/000X_description.sql` naming convention.
+
 ## Pipeline Overview
 
 ```
@@ -131,7 +133,7 @@ See `references/data-shapes.md` → DraftOutput
 2. Instruct Claude to polish, format, and finalize the letter
 3. Create `letter_version` record (type: `ai_draft`) with final content
 4. Update `letter_requests.currentAiDraftVersionId` pointer
-5. Status transition: `drafting` → `generated_locked`
+5. Status transition: `drafting` → `generated_locked` or `generated_unlocked` (free-trial path)
 6. Send "letter ready" email to subscriber
 7. Create `workflow_job` record for the stage
 
@@ -139,19 +141,14 @@ See `references/data-shapes.md` → DraftOutput
 
 ```
 submitted ──→ researching ──→ drafting ──→ generated_locked
-    ▲                                           │
-    │                                    (payment unlock)
-    │                                           ▼
-    │                                    pending_review
-    │                                           │
-    │                                    (attorney claims)
-    │                                           ▼
-    │                                    under_review
-    │                                     ╱    │    ╲
-    │                              approved rejected needs_changes
-    │                                                    │
-    └────────────────────────────────────────────────────┘
-                    (re-trigger from researching or drafting)
+                                  │
+                                  └──────────────→ generated_unlocked
+                                                        │
+                                                        ├─→ pending_review
+                                                        └─→ upsell_dismissed
+generated_locked ─────────────────────────────────────→ pending_review
+pending_review ──→ under_review ──→ approved | rejected | needs_changes
+needs_changes ──→ researching | drafting
 ```
 
 Valid transitions defined in `shared/types.ts` → `ALLOWED_TRANSITIONS`.
@@ -225,3 +222,13 @@ When active, the n8n path:
 - **Data shapes (IntakeJson, ResearchPacket, DraftOutput, NormalizedPromptInput):** See `references/data-shapes.md`
 - **Prompt templates and strategies:** See `references/prompt-strategies.md`
 - **Status transitions and workflow jobs:** See `references/status-workflow.md`
+
+## Agent Init (Required)
+
+Before starting work in this skill, initialize with the current frontend issue register (`agentId: a28925291b7edfefb`) and treat these as active priorities:
+
+- Critical: remove unsafe `as any` usage, fix email verification typing/logic, improve localStorage failure handling, replace SPA-breaking redirects, and surface upload/submission failures.
+- High: file upload hardening, auth race-condition mitigation, localStorage write frequency/debounce, Theme context hydration handling, suspense error boundaries, and polling/realtime coordination.
+- Medium/Low: logo/config hardcoding, pagination coverage, accessibility gaps, optimistic updates, production-safe logging, shared status enums, and form-state architecture cleanup.
+
+If implementation scope is unclear, default to Critical issues first.

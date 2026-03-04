@@ -3,7 +3,13 @@ import { Link } from "wouter";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Scale, Loader2, ArrowLeft, CheckCircle2 } from "lucide-react";
 
@@ -20,17 +26,22 @@ export default function ForgotPassword() {
       const res = await fetch("/api/auth/forgot-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ email }),
       });
       if (!res.ok) {
         // Network responded but with an error — still show sent screen to prevent enumeration
         // but also notify the user something went wrong
-        toast.error("Reset failed", { description: "Something went wrong. Please try again." });
+        toast.error("Reset failed", {
+          description: "Something went wrong. Please try again.",
+        });
       }
       // Always show success screen to prevent email enumeration
       setSent(true);
     } catch {
-      toast.error("Connection error", { description: "Please check your internet connection and try again." });
+      toast.error("Connection error", {
+        description: "Please check your internet connection and try again.",
+      });
       setSent(true);
     } finally {
       setLoading(false);
@@ -48,7 +59,9 @@ export default function ForgotPassword() {
               alt="Talk to My Lawyer"
               className="w-12 h-12 object-contain"
             />
-            <span className="text-2xl font-bold text-slate-900">Talk to My Lawyer</span>
+            <span className="text-2xl font-bold text-slate-900">
+              Talk to My Lawyer
+            </span>
           </Link>
         </div>
 
@@ -70,7 +83,8 @@ export default function ForgotPassword() {
                   <CheckCircle2 className="w-16 h-16 text-green-500" />
                 </div>
                 <p className="text-sm text-slate-500 text-center">
-                  If an account exists with <strong>{email}</strong>, you'll receive a password reset email shortly.
+                  If an account exists with <strong>{email}</strong>, you'll
+                  receive a password reset email shortly.
                 </p>
                 <Link href="/login">
                   <Button variant="outline" className="w-full mt-4">
@@ -88,7 +102,7 @@ export default function ForgotPassword() {
                     type="email"
                     placeholder="you@example.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={e => setEmail(e.target.value)}
                     required
                     autoComplete="email"
                     disabled={loading}

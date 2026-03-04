@@ -599,7 +599,7 @@ export default function SubmitLetter() {
                 {/* Summary */}
                 <div className="bg-muted/50 rounded-xl p-4 space-y-2">
                   <h4 className="text-sm font-semibold text-foreground">Submission Summary</h4>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-xs">
                     <span className="text-muted-foreground">Type:</span>
                     <span className="text-foreground font-medium">{LETTER_TYPE_CONFIG[form.letterType]?.label}</span>
                     <span className="text-muted-foreground">Jurisdiction:</span>

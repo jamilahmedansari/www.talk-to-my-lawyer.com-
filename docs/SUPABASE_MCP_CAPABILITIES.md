@@ -11,7 +11,7 @@
 | Database | PostgreSQL 17.6.1.063 |
 | Host | db.lguqhibpxympxvwqpedf.supabase.co |
 
-> **Note:** There is also an older `talk-to-my-lawyer` project (`hesxnmtbqlsstotggxsn`, us-west-2). The active one used by this app is `lguqhibpxympxvwqpedf`.
+> **Note:** This is the **canonical active project** for Talk to My Lawyer. Always use ref `lguqhibpxympxvwqpedf` for all migrations, queries, and MCP operations.
 
 ---
 
@@ -84,7 +84,12 @@
 | 1 | Moiz Jamil | moizj00@gmail.com | admin | true | 2026-02-25 04:35:03 |
 
 ### Tables (11 total)
-users, letter_requests, letter_versions, review_actions, workflow_jobs, research_runs, attachments, notifications, subscriptions, audit_log (+ pdf_url column added to letter_requests)
+users, letter_requests, letter_versions, review_actions, workflow_jobs, research_runs, attachments, notifications, subscriptions, audit_log
+
+**Schema changes applied (private storage migration):**
+- `letter_requests.pdf_storage_path` added (varchar 1000) — stores Supabase Storage key, not a URL
+- `attachments.storage_url` dropped — signed URLs generated on demand
+- `letter_status` enum includes `generated_unlocked` (free trial status)
 
 ---
 

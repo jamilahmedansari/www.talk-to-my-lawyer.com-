@@ -8,7 +8,9 @@
  *  - Attorney-approved certification stamp
  *  - Multi-page support with running footer on every page
  *
- * The generated PDF is uploaded to S3 via storagePut and the public URL is returned.
+ * The generated PDF is uploaded to Supabase private storage via storagePut.
+ * Returns the storage path (key) only — never a public URL.
+ * Callers must use storageGetSignedUrl() to generate a download link on demand.
  */
 
 import PDFDocument from "pdfkit";
@@ -62,7 +64,7 @@ const MARGIN_BOTTOM = 72;
  */
 export async function generateAndUploadApprovedPdf(
   opts: PdfGenerationOptions
-): Promise<{ pdfUrl: string; pdfKey: string }> {
+): Promise<{ pdfKey: string }> {
   const pdfBuffer = await generatePdfBuffer(opts);
 
   const timestamp = Date.now();
@@ -73,21 +75,11 @@ export async function generateAndUploadApprovedPdf(
     .replace(/\s+/g, "-");
   const fileKey = `approved-letters/${opts.letterId}-${safeSubject}-${timestamp}.pdf`;
 
-  // Graceful fallback: if Supabase storage is not configured (e.g. local dev),
-  // return a data URL so the approval flow still completes without crashing.
-  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!supabaseUrl || !supabaseServiceKey) {
-    console.warn(`[PDF] Storage not configured — returning data URL for letter #${opts.letterId}`);
-    const base64 = pdfBuffer.toString("base64");
-    const dataUrl = `data:application/pdf;base64,${base64}`;
-    return { pdfUrl: dataUrl, pdfKey: fileKey };
-  }
+  // Upload to private Supabase Storage bucket — returns path only, no public URL
+  const { path } = await storagePut(fileKey, pdfBuffer, "application/pdf", "approved-letters");
 
-  const { url } = await storagePut(fileKey, pdfBuffer, "application/pdf");
-
-  console.log(`[PDF] Generated and uploaded letter #${opts.letterId}: ${url}`);
-  return { pdfUrl: url, pdfKey: fileKey };
+  console.log(`[PDF] Generated and uploaded letter #${opts.letterId} to path: ${path}`);
+  return { pdfKey: path };
 }
 
 /**

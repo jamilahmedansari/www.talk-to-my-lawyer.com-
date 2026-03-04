@@ -3,9 +3,22 @@ import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Scale, Loader2, Eye, EyeOff, CheckCircle2, XCircle } from "lucide-react";
+import {
+  Scale,
+  Loader2,
+  Eye,
+  EyeOff,
+  CheckCircle2,
+  XCircle,
+} from "lucide-react";
 
 type PageState = "loading" | "form" | "success" | "error";
 
@@ -48,11 +61,15 @@ export default function ResetPassword() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) {
-      toast.error("Passwords do not match", { description: "Please make sure both password fields are identical." });
+      toast.error("Passwords do not match", {
+        description: "Please make sure both password fields are identical.",
+      });
       return;
     }
     if (password.length < 6) {
-      toast.error("Password too short", { description: "Password must be at least 6 characters." });
+      toast.error("Password too short", {
+        description: "Password must be at least 6 characters.",
+      });
       return;
     }
 
@@ -61,6 +78,7 @@ export default function ResetPassword() {
       const res = await fetch("/api/auth/reset-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           access_token: accessToken,
           refresh_token: refreshToken,
@@ -71,16 +89,28 @@ export default function ResetPassword() {
       if (res.ok && data.success) {
         setState("success");
         // Clear the hash from the URL so the tokens aren't visible
-        window.history.replaceState({}, document.title, window.location.pathname);
+        window.history.replaceState(
+          {},
+          document.title,
+          window.location.pathname
+        );
       } else {
-        toast.error("Reset failed", { description: data.error || "The link may have expired. Please request a new one." });
+        toast.error("Reset failed", {
+          description:
+            data.error ||
+            "The link may have expired. Please request a new one.",
+        });
         if (data.error?.includes("expired")) {
           setState("error");
-          setErrorMessage("This reset link has expired. Please request a new password reset email.");
+          setErrorMessage(
+            "This reset link has expired. Please request a new password reset email."
+          );
         }
       }
     } catch {
-      toast.error("Connection error", { description: "Please check your internet connection and try again." });
+      toast.error("Connection error", {
+        description: "Please check your internet connection and try again.",
+      });
     } finally {
       setLoading(false);
     }
@@ -97,7 +127,9 @@ export default function ResetPassword() {
               alt="Talk to My Lawyer"
               className="w-12 h-12 object-contain"
             />
-            <span className="text-2xl font-bold text-slate-900">Talk to My Lawyer</span>
+            <span className="text-2xl font-bold text-slate-900">
+              Talk to My Lawyer
+            </span>
           </Link>
         </div>
 
@@ -111,8 +143,10 @@ export default function ResetPassword() {
             </CardTitle>
             <CardDescription className="text-center">
               {state === "form" && "Choose a strong password for your account."}
-              {state === "success" && "Your password has been reset successfully."}
-              {state === "error" && "This reset link is invalid or has expired."}
+              {state === "success" &&
+                "Your password has been reset successfully."}
+              {state === "error" &&
+                "This reset link is invalid or has expired."}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -134,7 +168,7 @@ export default function ResetPassword() {
                       type={showPassword ? "text" : "password"}
                       placeholder="At least 6 characters"
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      onChange={e => setPassword(e.target.value)}
                       required
                       minLength={6}
                       disabled={loading}
@@ -146,7 +180,11 @@ export default function ResetPassword() {
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                       tabIndex={-1}
                     >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -158,7 +196,7 @@ export default function ResetPassword() {
                       type={showConfirm ? "text" : "password"}
                       placeholder="Repeat your new password"
                       value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      onChange={e => setConfirmPassword(e.target.value)}
                       required
                       disabled={loading}
                       className="pr-10"
@@ -169,17 +207,30 @@ export default function ResetPassword() {
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                       tabIndex={-1}
                     >
-                      {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      {showConfirm ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
                     </button>
                   </div>
                 </div>
-                {password && confirmPassword && password !== confirmPassword && (
-                  <p className="text-xs text-red-600">Passwords do not match.</p>
-                )}
+                {password &&
+                  confirmPassword &&
+                  password !== confirmPassword && (
+                    <p className="text-xs text-red-600">
+                      Passwords do not match.
+                    </p>
+                  )}
                 <Button
                   type="submit"
                   className="w-full bg-indigo-600 hover:bg-indigo-700"
-                  disabled={loading || (!!password && !!confirmPassword && password !== confirmPassword)}
+                  disabled={
+                    loading ||
+                    (!!password &&
+                      !!confirmPassword &&
+                      password !== confirmPassword)
+                  }
                 >
                   {loading ? (
                     <>
@@ -198,7 +249,8 @@ export default function ResetPassword() {
               <div className="space-y-4 text-center">
                 <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto" />
                 <p className="text-sm text-slate-600">
-                  Your password has been updated. You can now sign in with your new password.
+                  Your password has been updated. You can now sign in with your
+                  new password.
                 </p>
                 <Button
                   onClick={() => navigate("/login")}

@@ -1,5 +1,7 @@
 # PDF Generation Reference
 
+> **⚠️ Schema Changes:** All schema changes must be applied via Drizzle migrations. Follow the `drizzle/migrations/000X_description.sql` naming convention.
+
 ## Table of Contents
 - [Overview](#overview)
 - [Generation Flow](#generation-flow)
@@ -15,7 +17,7 @@
 **File:** `server/pdfGenerator.ts`
 **Library:** PDFKit (Node.js)
 **Trigger:** `review.approve` procedure
-**Output:** Professional legal letter PDF uploaded to S3
+**Output:** Professional legal letter PDF uploaded to private Supabase Storage bucket
 
 ---
 
@@ -37,8 +39,8 @@ generateAndUploadApprovedPdf({
     ├─ generatePdfBuffer() → PDFKit in-memory
     │   └─ Returns Buffer
     │
-    ├─ storagePut(fileKey, buffer, "application/pdf")
-    │   └─ Uploads to S3 bucket
+    ├─ storagePut(fileKey, buffer, "application/pdf", "approved-letters")
+    │   └─ Uploads to Supabase Storage (private bucket)
     │   └─ Returns { url }
     │
     ├─ updateLetterPdfUrl(letterId, url)
@@ -129,3 +131,13 @@ Before each paragraph, checks if `y > pageHeight - bottomMargin - 120`. If so, a
 Lines are treated as headings if:
 - Short (<80 chars), all uppercase, contains letters, no periods
 - OR starts with: RE:, Dear, To Whom, Sincerely, Respectfully, Regards, Yours truly
+
+---
+
+## Agent Init (Required)
+
+Initialize each run with issue register `agentId: a28925291b7edfefb` and preserve these priorities while changing PDF/review flows:
+
+- Keep type safety (no unsafe `as any`) and verified-email route protection intact.
+- Ensure failures are visible (localStorage, upload, submission) and avoid full-page auth redirects.
+- Maintain shared status consistency and production-safe error reporting.

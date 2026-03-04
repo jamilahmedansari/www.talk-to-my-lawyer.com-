@@ -117,35 +117,64 @@ export async function authenticateRequest(req: Request): Promise<User | null> {
     }
 
     const supabaseUid = supabaseUser.id;
+
+    // Apple Sign In allows users to hide their email — handle null gracefully.
+    // When email is null we use the Supabase UID as a stable unique identifier
+    // so the user can still be stored and looked up in our app database.
     const email = supabaseUser.email || null;
-    const name = supabaseUser.user_metadata?.name || 
-                 supabaseUser.user_metadata?.full_name || 
-                 email?.split("@")[0] || 
-                 null;
+
+    // Derive a display name from OAuth metadata in priority order:
+    //   1. user_metadata.name (Google full name)
+    //   2. user_metadata.full_name (Apple full name — only sent on first login)
+    //   3. user_metadata.preferred_username (GitHub)
+    //   4. Local part of email (email/password signups)
+    //   5. "User" as a safe fallback (Apple with hidden email)
+    const provider = supabaseUser.app_metadata?.provider || "email";
+    const name =
+      supabaseUser.user_metadata?.name ||
+      supabaseUser.user_metadata?.full_name ||
+      supabaseUser.user_metadata?.preferred_username ||
+      (email ? email.split("@")[0] : null) ||
+      (provider !== "email" ? "User" : null);
+
+    // Social OAuth users are considered email-verified by the provider.
+    const isOAuthUser = provider !== "email";
 
     // Check if user exists in our app database
     let appUser = await db.getUserByOpenId(supabaseUid);
 
     if (!appUser) {
-      // First login — create user in app database
-      // Check if this is the owner (admin)
+      // First login — create user in app database.
+      // Check if this is the owner (admin).
       const ownerOpenId = process.env.OWNER_OPEN_ID;
-      const isOwner = ownerOpenId && (supabaseUid === ownerOpenId || email === ownerOpenId);
-      
+      const isOwner = ownerOpenId && (supabaseUid === ownerOpenId || (email && email === ownerOpenId));
+
       await db.upsertUser({
         openId: supabaseUid,
         name,
         email,
-        loginMethod: supabaseUser.app_metadata?.provider || "email",
+        loginMethod: provider,
         lastSignedIn: new Date(),
-        ...(isOwner ? { role: "admin" } : {}),
+        // Social OAuth providers verify the email on their end, so we mark it
+        // as verified in our system. Apple users with hidden email are also
+        // considered verified (Apple has already authenticated them).
+        ...(isOAuthUser ? { emailVerified: true } : {}),
+        ...(isOwner ? { role: "admin", emailVerified: true } : {}),
       });
+
       appUser = await db.getUserByOpenId(supabaseUid);
+
+      if (isOAuthUser) {
+        console.log(`[SupabaseAuth] New OAuth user created via ${provider}: ${email ?? supabaseUid}`);
+      }
     } else {
-      // Update last sign-in
+      // Existing user — update last sign-in.
+      // Also backfill emailVerified for OAuth users who signed up before this
+      // logic was added.
       await db.upsertUser({
         openId: supabaseUid,
         lastSignedIn: new Date(),
+        ...(isOAuthUser && !appUser.emailVerified ? { emailVerified: true } : {}),
       });
     }
 

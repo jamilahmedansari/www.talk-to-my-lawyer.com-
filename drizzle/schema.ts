@@ -25,6 +25,7 @@ export const LETTER_STATUSES = [
   "drafting",
   "generated_locked",   // AI draft complete, awaiting subscriber payment to unlock
   "generated_unlocked", // First-letter free: AI draft visible, subscriber can send for review
+  "upsell_dismissed",   // Subscriber dismissed the $100 attorney review upsell — keeps free copy
   "pending_review",
   "under_review",
   "needs_changes",
@@ -74,7 +75,7 @@ export type Priority = (typeof PRIORITIES)[number];
 export const userRoleEnum = pgEnum("user_role", ["subscriber", "employee", "admin", "attorney"]);
 export const letterStatusEnum = pgEnum("letter_status", [
   "submitted", "researching", "drafting", "generated_locked", "generated_unlocked",
-  "pending_review", "under_review", "needs_changes", "approved", "rejected",
+  "upsell_dismissed", "pending_review", "under_review", "needs_changes", "approved", "rejected",
 ]);
 export const letterTypeEnum = pgEnum("letter_type", [
   "demand-letter", "cease-and-desist", "contract-breach", "eviction-notice",
@@ -129,7 +130,7 @@ export const letterRequests = pgTable("letter_requests", {
   assignedReviewerId: integer("assigned_reviewer_id"),
   currentAiDraftVersionId: integer("current_ai_draft_version_id"),
   currentFinalVersionId: integer("current_final_version_id"),
-  pdfUrl: text("pdf_url"),
+  pdfStoragePath: varchar("pdf_storage_path", { length: 1000 }),
   archivedAt: timestamp("archived_at", { withTimezone: true }),
   priority: priorityEnum("priority").default("normal").notNull(),
   lastStatusChangedAt: timestamp("last_status_changed_at", { withTimezone: true }).defaultNow(),
@@ -240,7 +241,7 @@ export const attachments = pgTable("attachments", {
   letterRequestId: integer("letter_request_id").notNull(),
   uploadedByUserId: integer("uploaded_by_user_id").notNull(),
   storagePath: varchar("storage_path", { length: 1000 }).notNull(),
-  storageUrl: varchar("storage_url", { length: 2000 }),
+  // storageUrl removed: private buckets use signed URLs generated on demand
   fileName: varchar("file_name", { length: 500 }).notNull(),
   mimeType: varchar("mime_type", { length: 200 }),
   sizeBytes: bigint("size_bytes", { mode: "number" }),

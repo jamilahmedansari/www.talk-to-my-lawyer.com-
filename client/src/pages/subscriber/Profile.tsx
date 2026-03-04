@@ -2,14 +2,40 @@ import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import AppLayout from "@/components/shared/AppLayout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { User, Shield, Mail, Key, Eye, EyeOff, Loader2, CheckCircle, Calendar, AlertTriangle } from "lucide-react";
+import {
+  User,
+  Shield,
+  Mail,
+  Key,
+  Eye,
+  EyeOff,
+  Loader2,
+  CheckCircle,
+  Calendar,
+  AlertTriangle,
+  Copy,
+  DollarSign,
+  Gavel,
+  BarChart2,
+  Scale,
+  Briefcase,
+  ExternalLink,
+  Settings,
+} from "lucide-react";
+import { useLocation } from "wouter";
 
 const ROLE_LABELS: Record<string, { label: string; color: string }> = {
   subscriber: { label: "Client", color: "bg-blue-100 text-blue-800" },
@@ -17,7 +43,6 @@ const ROLE_LABELS: Record<string, { label: string; color: string }> = {
   attorney: { label: "Attorney", color: "bg-purple-100 text-purple-800" },
   admin: { label: "Admin", color: "bg-red-100 text-red-800" },
 };
-
 
 // ─── Resend Verification Button ───────────────────────────────────────────
 function ResendVerificationButton({ email }: { email: string }) {
@@ -42,13 +67,18 @@ function ResendVerificationButton({ email }: { email: string }) {
           const res = await fetch("/api/auth/resend-verification", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
+            credentials: "include",
             body: JSON.stringify({ email }),
           });
           const d = await res.json();
           setSent(true);
-          toast.success("Verification email sent", { description: d.message || "Check your inbox." });
+          toast.success("Verification email sent", {
+            description: d.message || "Check your inbox.",
+          });
         } catch {
-          toast.error("Could not resend email", { description: "Please try again." });
+          toast.error("Could not resend email", {
+            description: "Please try again.",
+          });
         } finally {
           setLoading(false);
         }
@@ -95,18 +125,21 @@ export default function Profile() {
       setEditingName(false);
       utils.auth.me.invalidate();
     },
-    onError: (err) => toast.error(err.message || "Failed to update profile"),
+    onError: err => toast.error(err.message || "Failed to update profile"),
   });
 
   const changeEmail = trpc.profile.changeEmail.useMutation({
-    onSuccess: (data) => {
-      toast.success(data.message || "Email updated. Please check your new email for a verification link.");
+    onSuccess: data => {
+      toast.success(
+        data.message ||
+          "Email updated. Please check your new email for a verification link."
+      );
       setChangingEmail(false);
       setNewEmail("");
       setEmailPassword("");
       utils.auth.me.invalidate();
     },
-    onError: (err) => toast.error(err.message || "Failed to change email"),
+    onError: err => toast.error(err.message || "Failed to change email"),
   });
 
   const changePassword = trpc.profile.changePassword.useMutation({
@@ -117,7 +150,7 @@ export default function Profile() {
       setNewPassword("");
       setConfirmPassword("");
     },
-    onError: (err) => toast.error(err.message || "Failed to change password"),
+    onError: err => toast.error(err.message || "Failed to change password"),
   });
 
   const handleSaveName = () => {
@@ -141,7 +174,10 @@ export default function Profile() {
       toast.error("New email is the same as your current email");
       return;
     }
-    changeEmail.mutate({ newEmail: newEmail.trim(), currentPassword: emailPassword });
+    changeEmail.mutate({
+      newEmail: newEmail.trim(),
+      currentPassword: emailPassword,
+    });
   };
 
   const handleChangePassword = () => {
@@ -165,17 +201,25 @@ export default function Profile() {
   };
 
   const roleInfo = ROLE_LABELS[user?.role || "subscriber"];
-  const memberSince = user?.createdAt ? new Date(user.createdAt).toLocaleDateString("en-US", {
-    year: "numeric", month: "long", day: "numeric",
-  }) : "—";
+  const memberSince = user?.createdAt
+    ? new Date(user.createdAt).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    : "—";
 
   return (
     <AppLayout>
       <div className="container max-w-3xl py-8 space-y-6">
         {/* Page Header */}
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Profile Settings</h1>
-          <p className="text-muted-foreground mt-1">Manage your account information and security</p>
+          <h1 className="text-2xl font-bold tracking-tight">
+            Profile Settings
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Manage your account information and security
+          </p>
         </div>
 
         {/* Re-verification Banner */}
@@ -183,10 +227,13 @@ export default function Profile() {
           <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 flex items-start gap-3">
             <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
             <div className="flex-1">
-              <p className="font-medium text-amber-800">Email verification required</p>
+              <p className="font-medium text-amber-800">
+                Email verification required
+              </p>
               <p className="text-sm text-amber-700 mt-1">
-                Your email address has not been verified. Please check your inbox for a verification link.
-                Some features may be limited until your email is verified.
+                Your email address has not been verified. Please check your
+                inbox for a verification link. Some features may be limited
+                until your email is verified.
               </p>
               <ResendVerificationButton email={user.email || ""} />
             </div>
@@ -205,34 +252,52 @@ export default function Profile() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Role</Label>
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">
+                  Role
+                </Label>
                 <div>
                   <Badge className={roleInfo.color}>{roleInfo.label}</Badge>
                 </div>
               </div>
               <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Member Since</Label>
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">
+                  Member Since
+                </Label>
                 <div className="flex items-center gap-2 text-sm">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   {memberSince}
                 </div>
               </div>
               <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Email</Label>
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">
+                  Email
+                </Label>
                 <div className="flex items-center gap-2 text-sm">
                   <Mail className="h-4 w-4 text-muted-foreground" />
                   {user?.email || "—"}
                   {user?.emailVerified ? (
                     <CheckCircle className="h-4 w-4 text-green-500" />
                   ) : (
-                    <Badge variant="outline" className="text-xs border-amber-300 text-amber-700">Unverified</Badge>
+                    <Badge
+                      variant="outline"
+                      className="text-xs border-amber-300 text-amber-700"
+                    >
+                      Unverified
+                    </Badge>
                   )}
                 </div>
               </div>
               <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Account Status</Label>
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">
+                  Account Status
+                </Label>
                 <div>
-                  <Badge variant="outline" className="border-green-300 text-green-700">Active</Badge>
+                  <Badge
+                    variant="outline"
+                    className="border-green-300 text-green-700"
+                  >
+                    Active
+                  </Badge>
                 </div>
               </div>
             </div>
@@ -246,14 +311,18 @@ export default function Profile() {
               <Shield className="h-5 w-5" />
               Display Name
             </CardTitle>
-            <CardDescription>Update the name shown on your account</CardDescription>
+            <CardDescription>
+              Update the name shown on your account
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {!editingName ? (
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium">{user?.name || "Not set"}</p>
-                  <p className="text-sm text-muted-foreground">This name appears on your letters and account</p>
+                  <p className="text-sm text-muted-foreground">
+                    This name appears on your letters and account
+                  </p>
                 </div>
                 <Button
                   variant="outline"
@@ -273,7 +342,7 @@ export default function Profile() {
                   <Input
                     id="name"
                     value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
+                    onChange={e => setNewName(e.target.value)}
                     placeholder="Enter your full name"
                     maxLength={200}
                   />
@@ -285,8 +354,13 @@ export default function Profile() {
                     disabled={updateProfile.isPending}
                   >
                     {updateProfile.isPending ? (
-                      <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Saving...</>
-                    ) : "Save"}
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />{" "}
+                        Saving...
+                      </>
+                    ) : (
+                      "Save"
+                    )}
                   </Button>
                   <Button
                     variant="ghost"
@@ -309,7 +383,10 @@ export default function Profile() {
               <Mail className="h-5 w-5" />
               Email Address
             </CardTitle>
-            <CardDescription>Change your email address — requires password confirmation and re-verification</CardDescription>
+            <CardDescription>
+              Change your email address — requires password confirmation and
+              re-verification
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {!changingEmail ? (
@@ -327,7 +404,9 @@ export default function Profile() {
                       </span>
                     )}
                   </p>
-                  <p className="text-sm text-muted-foreground">Used for login and notifications</p>
+                  <p className="text-sm text-muted-foreground">
+                    Used for login and notifications
+                  </p>
                 </div>
                 <Button
                   variant="outline"
@@ -344,8 +423,9 @@ export default function Profile() {
             ) : (
               <div className="space-y-4">
                 <div className="rounded-md bg-muted/50 p-3 text-sm text-muted-foreground">
-                  Changing your email will require you to verify the new address before you can continue using the platform.
-                  You will need to enter your current password to confirm this change.
+                  Changing your email will require you to verify the new address
+                  before you can continue using the platform. You will need to
+                  enter your current password to confirm this change.
                 </div>
 
                 {/* New Email */}
@@ -355,7 +435,7 @@ export default function Profile() {
                     id="new-email"
                     type="email"
                     value={newEmail}
-                    onChange={(e) => setNewEmail(e.target.value)}
+                    onChange={e => setNewEmail(e.target.value)}
                     placeholder="Enter your new email address"
                   />
                 </div>
@@ -368,7 +448,7 @@ export default function Profile() {
                       id="email-password"
                       type={showEmailPassword ? "text" : "password"}
                       value={emailPassword}
-                      onChange={(e) => setEmailPassword(e.target.value)}
+                      onChange={e => setEmailPassword(e.target.value)}
                       placeholder="Enter your password to confirm"
                     />
                     <Button
@@ -378,7 +458,11 @@ export default function Profile() {
                       className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
                       onClick={() => setShowEmailPassword(!showEmailPassword)}
                     >
-                      {showEmailPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showEmailPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -387,11 +471,20 @@ export default function Profile() {
                   <Button
                     size="sm"
                     onClick={handleChangeEmail}
-                    disabled={changeEmail.isPending || !newEmail.trim() || !emailPassword}
+                    disabled={
+                      changeEmail.isPending ||
+                      !newEmail.trim() ||
+                      !emailPassword
+                    }
                   >
                     {changeEmail.isPending ? (
-                      <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Updating...</>
-                    ) : "Update Email"}
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />{" "}
+                        Updating...
+                      </>
+                    ) : (
+                      "Update Email"
+                    )}
                   </Button>
                   <Button
                     variant="ghost"
@@ -425,7 +518,9 @@ export default function Profile() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium">••••••••</p>
-                  <p className="text-sm text-muted-foreground">Last changed: Unknown</p>
+                  <p className="text-sm text-muted-foreground">
+                    Last changed: Unknown
+                  </p>
                 </div>
                 <Button
                   variant="outline"
@@ -445,7 +540,7 @@ export default function Profile() {
                       id="current-password"
                       type={showCurrentPassword ? "text" : "password"}
                       value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      onChange={e => setCurrentPassword(e.target.value)}
                       placeholder="Enter current password"
                     />
                     <Button
@@ -453,9 +548,15 @@ export default function Profile() {
                       variant="ghost"
                       size="sm"
                       className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      onClick={() =>
+                        setShowCurrentPassword(!showCurrentPassword)
+                      }
                     >
-                      {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showCurrentPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -470,7 +571,7 @@ export default function Profile() {
                       id="new-password"
                       type={showNewPassword ? "text" : "password"}
                       value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
+                      onChange={e => setNewPassword(e.target.value)}
                       placeholder="Enter new password (min 6 characters)"
                     />
                     <Button
@@ -480,11 +581,17 @@ export default function Profile() {
                       className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
                       onClick={() => setShowNewPassword(!showNewPassword)}
                     >
-                      {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showNewPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                     </Button>
                   </div>
                   {newPassword.length > 0 && newPassword.length < 6 && (
-                    <p className="text-xs text-destructive">Password must be at least 6 characters</p>
+                    <p className="text-xs text-destructive">
+                      Password must be at least 6 characters
+                    </p>
                   )}
                 </div>
 
@@ -495,23 +602,36 @@ export default function Profile() {
                     id="confirm-password"
                     type={showNewPassword ? "text" : "password"}
                     value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    onChange={e => setConfirmPassword(e.target.value)}
                     placeholder="Re-enter new password"
                   />
-                  {confirmPassword.length > 0 && confirmPassword !== newPassword && (
-                    <p className="text-xs text-destructive">Passwords do not match</p>
-                  )}
+                  {confirmPassword.length > 0 &&
+                    confirmPassword !== newPassword && (
+                      <p className="text-xs text-destructive">
+                        Passwords do not match
+                      </p>
+                    )}
                 </div>
 
                 <div className="flex gap-2 pt-2">
                   <Button
                     size="sm"
                     onClick={handleChangePassword}
-                    disabled={changePassword.isPending || !currentPassword || newPassword.length < 6 || newPassword !== confirmPassword}
+                    disabled={
+                      changePassword.isPending ||
+                      !currentPassword ||
+                      newPassword.length < 6 ||
+                      newPassword !== confirmPassword
+                    }
                   >
                     {changePassword.isPending ? (
-                      <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Updating...</>
-                    ) : "Update Password"}
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />{" "}
+                        Updating...
+                      </>
+                    ) : (
+                      "Update Password"
+                    )}
                   </Button>
                   <Button
                     variant="ghost"
@@ -531,7 +651,249 @@ export default function Profile() {
             )}
           </CardContent>
         </Card>
+        {/* ─── Role-Specific Sections ─────────────────────────────────────── */}
+
+        {/* Employee: Affiliate Info */}
+        {user?.role === "employee" && <EmployeeProfileSection userId={user.id} />}
+
+        {/* Attorney: Professional Info */}
+        {user?.role === "attorney" && <AttorneyProfileSection />}
+
+        {/* Admin: System Info */}
+        {user?.role === "admin" && <AdminProfileSection />}
       </div>
     </AppLayout>
+  );
+}
+
+// ─── Employee Profile Section ─────────────────────────────────────────────────
+function EmployeeProfileSection({ userId }: { userId: number }) {
+  const discountQuery = trpc.affiliate.myCode.useQuery();
+  const [copied, setCopied] = useState(false);
+  const appUrl = typeof window !== "undefined" ? window.location.origin : "";
+  const referralLink = discountQuery.data?.code
+    ? `${appUrl}/?ref=${discountQuery.data.code}`
+    : null;
+
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      toast.success(`${label} copied to clipboard`);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <div className="mt-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Briefcase className="h-4 w-4 text-green-600" />
+            Affiliate Account
+          </CardTitle>
+          <CardDescription>Your discount code and referral link</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {discountQuery.isLoading ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Loading affiliate info...
+            </div>
+          ) : discountQuery.data ? (
+            <>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Your Discount Code</Label>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 bg-muted rounded px-3 py-2 text-sm font-mono font-bold tracking-wider">
+                    {discountQuery.data.code}
+                  </code>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => copyToClipboard(discountQuery.data!.code, "Discount code")}
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Gives clients {discountQuery.data.discountPercent}% off — you earn commission on every use.
+                </p>
+              </div>
+              {referralLink && (
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Your Referral Link</Label>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 bg-muted rounded px-3 py-2 text-xs font-mono truncate">
+                      {referralLink}
+                    </code>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => copyToClipboard(referralLink, "Referral link")}
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+              <Separator />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground text-xs">Commission Rate</p>
+                  <p className="font-semibold">5%</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs">Total Uses</p>
+                  <p className="font-semibold">{discountQuery.data.usageCount}</p>
+                </div>
+              </div>
+              <Button variant="outline" size="sm" className="w-full" asChild>
+                <a href="/employee/earnings">
+                  <Briefcase className="h-4 w-4 mr-2" /> View Earnings Dashboard
+                </a>
+              </Button>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">No discount code found. Contact support.</p>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ─── Attorney Profile Section ─────────────────────────────────────────────────
+function AttorneyProfileSection() {
+  const { user } = useAuth();
+  const [barNumber, setBarNumber] = useState("");
+  const [specialisation, setSpecialisation] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = () => {
+    setSaving(true);
+    // Bar number and specialisation are stored in local component state only.
+    // A future DB migration (adding bar_number and specialisation columns to the
+    // users table) is required before these values can be persisted.
+    // We intentionally do NOT show a success toast to avoid misleading the user.
+    setTimeout(() => {
+      setSaving(false);
+      setEditing(false);
+      toast.warning("Changes are local only", {
+        description: "Persistence is not yet implemented — your changes will be lost on refresh.",
+      });
+    }, 300);
+  };
+
+  return (
+    <div className="mt-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Scale className="h-4 w-4 text-purple-600" />
+            Professional Profile
+          </CardTitle>
+          <CardDescription>Your bar credentials and specialisation area</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Bar Number</Label>
+              {editing ? (
+                <Input
+                  value={barNumber}
+                  onChange={e => setBarNumber(e.target.value)}
+                  placeholder="e.g. CA-123456"
+                  className="text-sm"
+                />
+              ) : (
+                <p className="text-sm font-medium">
+                  {barNumber || <span className="text-muted-foreground italic">Not set</span>}
+                </p>
+              )}
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Specialisation</Label>
+              {editing ? (
+                <Input
+                  value={specialisation}
+                  onChange={e => setSpecialisation(e.target.value)}
+                  placeholder="e.g. Employment Law, Contract Disputes"
+                  className="text-sm"
+                />
+              ) : (
+                <p className="text-sm font-medium">
+                  {specialisation || <span className="text-muted-foreground italic">Not set</span>}
+                </p>
+              )}
+            </div>
+          </div>
+          <Separator />
+          <div className="flex gap-2">
+            {editing ? (
+              <>
+                <Button size="sm" onClick={handleSave} disabled={saving}>
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  Save Changes
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>
+              </>
+            ) : (
+              <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
+                Edit Professional Info
+              </Button>
+            )}
+          </div>
+          <Button variant="outline" size="sm" className="w-full" asChild>
+            <a href="/review">
+              <Scale className="h-4 w-4 mr-2" /> Go to Review Centre
+            </a>
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ─── Admin Profile Section ────────────────────────────────────────────────────
+function AdminProfileSection() {
+  return (
+    <div className="mt-6">
+      <Card className="border-red-200">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Settings className="h-4 w-4 text-red-600" />
+            Admin Access
+          </CardTitle>
+          <CardDescription>System administration and oversight tools</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Button variant="outline" size="sm" asChild>
+              <a href="/admin">
+                <Shield className="h-4 w-4 mr-2" /> Admin Dashboard
+              </a>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <a href="/admin/users">
+                <User className="h-4 w-4 mr-2" /> User Management
+              </a>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <a href="/review">
+                <Scale className="h-4 w-4 mr-2" /> Review Centre
+              </a>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <a href="/admin/jobs">
+                <Settings className="h-4 w-4 mr-2" /> Failed Jobs
+              </a>
+            </Button>
+          </div>
+          <div className="text-xs text-muted-foreground bg-red-50 rounded p-2 border border-red-100">
+            You have full system access. Changes you make affect all users.
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

@@ -7,6 +7,8 @@ description: Complete reference for the Talk to My Lawyer attorney review pipeli
 
 The letter review pipeline handles everything that happens after the AI generates a letter draft and the subscriber pays to unlock it. It covers the attorney review workflow, inline editing, approval/rejection decisions, PDF generation, and all associated notifications.
 
+> **⚠️ Schema Changes:** All schema changes must be applied via Drizzle migrations. Follow the `drizzle/migrations/000X_description.sql` naming convention.
+
 ## Review Pipeline Overview
 
 ```
@@ -68,9 +70,9 @@ The letter review pipeline handles everything that happens after the AI generate
 
 | Procedure | Condition | Transition |
 |-----------|-----------|------------|
-| `billing.freeUnlock` | First letter, no prior unlocked letters | `generated_locked` → `pending_review` |
+| `billing.freeUnlock` | First letter, no prior unlocked letters | `generated_locked` or `generated_unlocked` → `pending_review` |
 | `billing.payToUnlock` | Creates $200 Stripe checkout | Stripe webhook → `pending_review` |
-| `billing.payTrialReview` | Creates $50 Stripe checkout | Stripe webhook → `pending_review` |
+| `billing.createAttorneyReviewCheckout` | Creates $100 Stripe checkout for free-trial letters | Stripe webhook → `pending_review` |
 
 The Stripe webhook handler (`server/stripeWebhook.ts`) processes `checkout.session.completed` events and transitions the letter status.
 
@@ -91,7 +93,7 @@ All review procedures require `attorneyProcedure` guard (role: `attorney` or `ad
 What happens:
 1. Verify letter exists and is in `pending_review` status
 2. Call `claimLetterForReview(letterId, reviewerId)` — idempotent, rejects if already claimed by another
-3. Log review action: `claimed`
+3. Log review action: `claimed_for_review`
 4. Send email to subscriber: "An attorney is reviewing your letter"
 5. Create in-app notification for subscriber
 
@@ -306,3 +308,11 @@ The letter request tracks two version pointers:
 - **Review action types and visibility rules:** See `references/review-actions.md`
 - **PDF generation details and branding:** See `references/pdf-generation.md`
 - **Payment and paywall flow:** See `references/payment-flow.md`
+
+## Agent Init (Required)
+
+Before beginning any task in this skill, initialize with the active frontend issue register (`agentId: a28925291b7edfefb`).
+
+- Critical first: eliminate unsafe `as any`, enforce typed email verification checks, improve localStorage and upload/submission error handling, and remove non-SPA redirects.
+- High next: upload security hardening, auth race mitigation, draft save debounce, suspense boundary coverage, and polling/realtime race control.
+- Medium/Low cleanup: configurable assets, pagination/accessibility gaps, optimistic updates, production-safe logging, shared status constants.
