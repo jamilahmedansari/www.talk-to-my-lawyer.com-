@@ -654,7 +654,7 @@ export default function Profile() {
         </Card>
         {/* ─── Role-Specific Sections ─────────────────────────────────────── */}
 
-        {/* Employee: Affiliate Info */}}
+        {/* Employee: Affiliate Info */}
         {user?.role === "employee" && <EmployeeProfileSection userId={user.id} />}
 
         {/* Attorney: Professional Info */}
