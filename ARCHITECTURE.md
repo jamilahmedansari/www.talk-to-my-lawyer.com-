@@ -1,242 +1,212 @@
 # Talk to My Lawyer — Architecture & Codebase Guide
 
-This document maps the codebase to the canonical architecture defined in the **letter-generation-pipeline** and **letter-review-pipeline** skills (see `docs/skills/`).
+> **Last Updated:** 2026-03-04
+> **Single TODO Source:** See [PROJECT_TODO.md](PROJECT_TODO.md)
 
 ## Quick Navigation
 
-- **Letter Generation Pipeline** → `server/pipeline.ts` + `server/routers.ts` (letters.submit)
-- **Letter Review Pipeline** → `server/routers.ts` (review.*, billing.*, admin.*)
+- **Letter Generation Pipeline** → `server/pipeline.ts` + `server/routers/letters.ts`
+- **Letter Review Pipeline** → `server/routers/review.ts`
+- **Billing & Payments** → `server/routers/billing.ts` + `server/stripe.ts` + `server/stripeWebhook.ts`
+- **Admin Controls** → `server/routers/admin.ts`
 - **Database** → `drizzle/schema.ts` + `server/db.ts`
 - **Frontend** → `client/src/pages/` (organized by role)
 - **Shared Types** → `shared/types.ts` + `shared/const.ts`
 
 ---
 
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Frontend | React 19 + Vite + TypeScript |
+| UI | shadcn/ui + Tailwind CSS |
+| API | tRPC v11 (Express adapter) |
+| Database | PostgreSQL (Supabase) + Drizzle ORM |
+| Auth | Supabase Auth (email/password) |
+| Payments | Stripe (checkout, subscriptions, webhooks) |
+| AI Pipeline | Perplexity (sonar-pro) + Anthropic Claude (claude-opus-4-5) |
+| Email | Resend API |
+| Storage | Supabase Storage (S3-compatible) |
+| PDF | PDFKit (server-side) |
+| Rate Limiting | Upstash Redis |
+| Monitoring | Sentry |
+
+---
+
+## Role System (4 Roles)
+
+| Role | DB Value | Access Scope | Dashboard Route |
+|------|----------|-------------|----------------|
+| Subscriber | `subscriber` | Own letters, billing, profile | `/dashboard` |
+| Employee | `employee` | Affiliate dashboard, discount codes, commissions, payouts | `/employee` |
+| Attorney | `attorney` | Review Center (queue + detail), SLA dashboard | `/attorney` |
+| Admin | `admin` | Full platform access, user management, jobs, letters, affiliate oversight | `/admin` |
+
+**RBAC Guards:**
+- `subscriberProcedure` — Subscriber role only
+- `attorneyProcedure` — Attorney, Employee, or Admin roles
+- `employeeProcedure` — Employee or Admin roles
+- `adminProcedure` — Admin role only
+- `protectedProcedure` — Any authenticated user
+- `publicProcedure` — No auth required
+
+---
+
 ## Server Architecture
 
-### Core Modules
+### Entry Point
 
-| File | Purpose | Lines | Status |
-|------|---------|-------|--------|
-| `server/routers.ts` | tRPC router definitions (all procedures) | 1,271 | ✅ Stable |
-| `server/db.ts` | Database query helpers (CRUD, aggregations) | 932 | ✅ Stable |
-| `server/pipeline.ts` | 3-stage AI orchestrator (research → draft → assembly) | 1,560 | ✅ Stable |
-| `server/email.ts` | Email templates (8+ templates for all workflows) | 1,056 | ✅ Stable |
-| `server/stripe.ts` | Stripe checkout + subscription management | 473 | ✅ Stable |
-| `server/stripeWebhook.ts` | Stripe webhook handler (payment completion) | 380 | ✅ Stable |
-| `server/pdfGenerator.ts` | PDF generation for approved letters (PDFKit) | 290 | ✅ Stable |
-| `server/intake-normalizer.ts` | Canonical intake JSON normalization | 180 | ✅ Stable |
-| `server/supabaseAuth.ts` | Supabase authentication integration | 210 | ✅ Stable |
-| `server/rateLimiter.ts` | Rate limiting (Upstash Redis) | 85 | ✅ Stable |
-| `server/cronScheduler.ts` | Scheduled tasks (draft reminders, cleanup) | 120 | ✅ Stable |
-| `server/draftReminders.ts` | Email reminders for stuck drafts | 95 | ✅ Stable |
-| `server/n8nCallback.ts` | n8n webhook handler (dormant) | 140 | ⚠️ Dormant |
-| `server/sentry.ts` | Error tracking integration | 85 | ✅ Stable |
-| `server/storage.ts` | S3 file upload helpers | 60 | ✅ Stable |
+`server/_core/index.ts` → Express app with:
+- tRPC adapter at `/api/trpc`
+- Stripe webhook at `/api/stripe-webhook`
+- n8n callback at `/api/n8n-callback`
+- Dev email preview at `/api/dev/email-preview` (non-production only)
+- Static file serving for the React SPA
 
-### Feature Modules (Logical Organization)
+### Router Modules
 
-#### 1. **Letter Generation** (routers.ts: lines 169-395)
+| Router | File | Procedures | Guard |
+|--------|------|-----------|-------|
+| `auth` | `server/routers/auth.ts` | me, logout, completeOnboarding | public/protected |
+| `letters` | `server/routers/letters.ts` | submit, myLetters, detail, updateForChanges, archive, uploadAttachment | subscriberProcedure |
+| `review` | `server/routers/review.ts` | queue, letterDetail, claim, approve, reject, requestChanges, saveEdit, stats | attorneyProcedure |
+| `admin` | `server/routers/admin.ts` | stats, users, updateRole, allLetters, failedJobs, retryJob, purgeFailedJobs, letterJobs, employees, getLetterDetail, forceStatusTransition, assignLetter | adminProcedure |
+| `billing` | `server/routers/billing.ts` | getSubscription, checkCanSubmit, createCheckout, createBillingPortal, checkPaywallStatus, freeUnlock, payToUnlock, paymentHistory, receipts | mixed |
+| `notifications` | `server/routers/notifications.ts` | list, markRead, markAllRead | protectedProcedure |
+| `affiliate` | `server/routers/affiliate.ts` | myCode, myEarnings, myCommissions, requestPayout, myPayouts | employeeProcedure |
+| `versions` | `server/routers/versions.ts` | get | protectedProcedure (role-scoped) |
 
-**tRPC Procedures:**
-- `letters.submit` — Create letter request, trigger AI pipeline
-- `letters.list` — Get subscriber's letters
-- `letters.detail` — Get single letter with versions
-- `letters.canSubmit` — Check subscription eligibility
+### Key Server Files
 
-**Key Functions (db.ts):**
-- `createLetterRequest()` — Insert letter_request record
-- `createAttachment()` — Store uploaded files
-- `updateLetterStatus()` — Transition status
-- `getLetterRequestById()` — Fetch letter with all related data
-
-**Pipeline Flow:**
-```
-letters.submit
-  → createLetterRequest() [status: submitted]
-  → runLetterPipeline() async
-    → Stage 1: Research (Perplexity)
-    → Stage 2: Draft (Claude)
-    → Stage 3: Assembly (Claude)
-  → updateLetterStatus() [status: generated_locked]
-  → sendLetterReadyEmail()
-```
-
-**See Also:** `docs/skills/letter-generation-pipeline/`
+| File | Purpose | Lines |
+|------|---------|-------|
+| `server/pipeline.ts` | 3-stage AI orchestrator + prompt builders | ~1560 |
+| `server/intake-normalizer.ts` | Canonical intake normalization | ~120 |
+| `server/db.ts` | All database query helpers | ~930 |
+| `server/email.ts` | Email templates (9 templates) | ~1060 |
+| `server/stripe.ts` | Stripe checkout + subscription helpers | ~470 |
+| `server/stripeWebhook.ts` | Stripe webhook handler | ~380 |
+| `server/pdfGenerator.ts` | PDFKit PDF generation | ~290 |
+| `server/storage.ts` | Supabase Storage (S3) helpers | ~80 |
+| `server/n8nCallback.ts` | n8n webhook handler (dormant) | ~260 |
+| `server/sentry.ts` | Sentry error tracking | ~50 |
+| `server/rateLimiter.ts` | Upstash Redis rate limiting | ~80 |
 
 ---
 
-#### 2. **Letter Review** (routers.ts: lines 396-627)
+## Letter Generation Pipeline (3 Stages)
 
-**tRPC Procedures:**
-- `review.queue` — Get pending letters (attorney view)
-- `review.letterDetail` — Get letter with intake, research, draft
-- `review.claim` — Assign letter to attorney
-- `review.saveEdit` — Save attorney edits
-- `review.approve` — Approve and generate PDF
-- `review.reject` — Reject letter
-- `review.requestChanges` — Request changes + optional re-trigger
-
-**Key Functions (db.ts):**
-- `claimLetterForReview()` — Assign to attorney, transition to under_review
-- `logReviewAction()` — Audit trail
-- `generateAndUploadApprovedPdf()` — PDF generation + S3 upload
-- `updateLetterPdfUrl()` — Store PDF URL
-
-**Review Flow:**
 ```
-pending_review (after payment)
-  → review.claim() → under_review
-  → review.saveEdit() (multiple times)
-  → review.approve() → approved
-    → generateAndUploadApprovedPdf()
-    → sendLetterApprovedEmail()
-  OR review.reject() → rejected
-  OR review.requestChanges() → needs_changes
+Stage 1: Perplexity (sonar-pro) → Legal Research (90s timeout)
+  Input: IntakeJson → Output: ResearchPacket JSON
+  Status: submitted → researching
+
+Stage 2: Anthropic Claude (claude-opus-4-5) → Initial Draft (120s timeout)
+  Input: IntakeJson + ResearchPacket → Output: DraftOutput JSON
+  Status: researching → drafting
+
+Stage 3: Anthropic Claude (claude-opus-4-5) → Final Assembly (120s timeout)
+  Input: IntakeJson + ResearchPacket + DraftOutput → Output: Final letter text
+  Status: drafting → generated_locked
 ```
 
-**See Also:** `docs/skills/letter-review-pipeline/`
+On completion: creates `ai_draft` letter version, sends "letter ready" email to subscriber.
+On failure: status reverts to `submitted`, error logged to `workflow_jobs`.
+
+**See:** `docs/skills/letter-generation-pipeline/SKILL.md` for full specification.
 
 ---
 
-#### 3. **Authentication & Authorization** (routers.ts: lines 129-168)
+## Status Machine
 
-**tRPC Procedures:**
-- `auth.me` — Get current user
-- `auth.logout` — Clear session
-- `auth.completeOnboarding` — Set role + jurisdiction
-
-**Role-Based Access Control (RBAC):**
-- `publicProcedure` — No auth required
-- `protectedProcedure` — Auth required (any role)
-- `subscriberProcedure` — Subscriber only
-- `attorneyProcedure` — Attorney or admin
-- `adminProcedure` — Admin only
-
-**Implementation:** `server/routers.ts` (lines 102-120)
-
-**Frontend Guards:** `client/src/components/ProtectedRoute.tsx`
-
----
-
-#### 4. **Billing & Payments** (routers.ts: lines 780-1011)
-
-**tRPC Procedures:**
-- `billing.createCheckout` — Stripe checkout for subscription
-- `billing.createBillingPortal` — Stripe customer portal
-- `billing.payToUnlock` — Pay-per-letter checkout ($200)
-- `billing.payTrialReview` — Trial review checkout ($50)
-- `billing.freeUnlock` — First letter free (no payment)
-- `billing.checkCanSubmit` — Check subscription eligibility
-- `billing.getSubscription` — Get current subscription
-- `billing.getDiscountCode` — Validate discount code
-
-**Stripe Webhook Handler:** `server/stripeWebhook.ts`
-- Listens for: `checkout.session.completed`, `customer.subscription.*`, `invoice.paid`
-- Transitions letter status on payment success
-- Creates subscription records
-
-**Pricing Model:**
-- Free trial: 1 free letter (first letter only)
-- Pay-per-letter: $200 one-time
-- Monthly Basic: $499/month (4 letters)
-- Monthly Pro: $699/month (8 letters)
-
-**See Also:** `docs/skills/letter-review-pipeline/references/payment-flow.md`
-
----
-
-#### 5. **Admin Controls** (routers.ts: lines 628-743)
-
-**tRPC Procedures:**
-- `admin.stats` — Dashboard statistics
-- `admin.allLetters` — List all letters (with filters)
-- `admin.getLetterDetail` — Full audit view
-- `admin.users` — List all users
-- `admin.assignLetter` — Assign letter to attorney
-- `admin.forceStatusTransition` — Override status
-- `admin.retryJob` — Re-trigger pipeline from stage
-- `admin.jobs` — List workflow jobs
-
-**Key Functions (db.ts):**
-- `getSystemStats()` — Dashboard stats (total, by status, approved)
-- `getAllLetters()` — Paginated letter list
-- `retryPipelineFromStage()` — Re-run pipeline
-
----
-
-#### 6. **Notifications & Messaging** (routers.ts: lines 744-756)
-
-**tRPC Procedures:**
-- `notifications.list` — Get user's notifications
-- `notifications.markRead` — Mark notification as read
-
-**Email Templates (email.ts):**
-- `sendLetterReadyEmail()` — Letter generation complete
-- `sendLetterUnlockedEmail()` — Payment successful
-- `sendLetterUnderReviewEmail()` — Attorney claimed letter
-- `sendLetterApprovedEmail()` — Letter approved + PDF
-- `sendLetterRejectedEmail()` — Letter rejected
-- `sendNeedsChangesEmail()` — Changes requested
-- `sendDraftReminderEmail()` — Stuck draft reminder
-- `sendEmployeeCommissionEmail()` — Commission earned
-
----
-
-#### 7. **Affiliate & Commissions** (routers.ts: lines 1012-1153)
-
-**tRPC Procedures:**
-- `affiliate.getStats` — Referral stats
-- `affiliate.getEarnings` — Commission earnings
-- `affiliate.getDiscountCode` — Employee's discount code
-- `affiliate.claimCommission` — Claim earned commission
-
-**Commission Model:**
-- Employees earn 15% on referred subscriptions
-- Tracked via `commission_ledger` table
-- Payouts via Stripe
-
----
-
-#### 8. **Profile & User Management** (routers.ts: lines 1154-1271)
-
-**tRPC Procedures:**
-- `profile.update` — Update user profile
-- `profile.getMe` — Get current user details
-- `profile.verifyEmail` — Trigger email verification
-
----
-
-### Database Schema
-
-**File:** `drizzle/schema.ts`
-
-**Core Tables:**
-
-| Table | Purpose | Key Fields |
-|-------|---------|-----------|
-| `users` | User accounts | id, email, role, email_verified |
-| `letter_requests` | Letter submissions | id, userId, status, subject, intakeJson |
-| `letter_versions` | Letter drafts (AI + attorney edits) | id, letterId, type, content, stage |
-| `workflow_jobs` | Pipeline execution tracking | id, letterId, stage, status, error |
-| `research_runs` | Research packet storage | id, letterId, researchJson |
-| `attachments` | Uploaded files | id, letterId, s3Key, fileName |
-| `review_actions` | Audit trail | id, letterId, action, noteText, visibility |
-| `subscriptions` | Stripe subscriptions | id, userId, stripeSubscriptionId, status |
-| `notifications` | In-app notifications | id, userId, type, message |
-| `commission_ledger` | Employee commissions | id, employeeId, amount, stripePaymentIntentId |
-| `discount_codes` | Referral discount codes | id, code, employeeId, discountPercent |
-
-**Status Enum:**
-```typescript
+```
 submitted → researching → drafting → generated_locked
-                                           ↓ (payment)
-                                    pending_review
-                                           ↓ (claim)
-                                    under_review
-                                    ↙    ↓    ↘
-                            approved  rejected  needs_changes
+                                          │
+                                          ▼
+                                    [Payment Unlock]
+                                          │
+                                          ▼
+                                    pending_review → under_review → approved
+                                                                 → rejected
+                                                                 → needs_changes
+                                                                       │
+                                                                       ▼
+                                                              researching | drafting
 ```
+
+**Legacy statuses** (still in schema enum, deprecated):
+- `generated_unlocked` — First-letter free path (deprecated in Phase 69)
+- `upsell_dismissed` — Free copy kept (deprecated in Phase 69)
+
+---
+
+## Payment Flow
+
+```
+1. Pipeline completes → status = generated_locked
+2. Subscriber sees paywall (blurred draft + $200 CTA)
+3. Pay $200 → Stripe checkout → webhook → status = pending_review
+4. OR: First letter free → billing.freeUnlock → status = pending_review
+5. OR: Active subscription → bypasses paywall
+```
+
+**Stripe Products:**
+- Per-letter: $29 (was $200, check current pricing in `server/stripe.ts`)
+- Monthly: $79/mo
+- Annual: $599/yr
+
+---
+
+## Review Workflow
+
+```
+pending_review → [Attorney claims] → under_review
+under_review → [Approve] → approved (PDF generated, email sent)
+under_review → [Reject] → rejected (email sent)
+under_review → [Request Changes] → needs_changes (can re-trigger pipeline)
+```
+
+**5 Core Operations:**
+1. `review.claim` — Assign letter to attorney
+2. `review.saveEdit` — Save attorney edit version (no status change)
+3. `review.approve` — Final approval + PDF generation + email
+4. `review.reject` — Reject with reason
+5. `review.requestChanges` — Request changes, optionally re-trigger AI
+
+**See:** `docs/skills/letter-review-pipeline/SKILL.md` for full specification.
+
+---
+
+## Database Schema (13 tables)
+
+| Table | Purpose |
+|-------|---------|
+| `users` | User accounts (synced from Supabase Auth) |
+| `letter_requests` | Letter intake + status tracking (22 columns) |
+| `letter_versions` | Immutable version history (`ai_draft`, `attorney_edit`, `final_approved`) |
+| `review_actions` | Audit trail for all review actions |
+| `workflow_jobs` | Pipeline execution tracking |
+| `research_runs` | Perplexity research results |
+| `attachments` | File uploads (Supabase Storage references) |
+| `notifications` | In-app notifications |
+| `subscriptions` | Stripe subscription tracking |
+| `discount_codes` | Employee referral codes |
+| `commission_ledger` | Affiliate commission records |
+| `payout_requests` | Employee payout requests |
+| `payments` | Payment records |
+
+**Schema file:** `drizzle/schema.ts`
+**Migrations:** `drizzle/migrations/`
+
+### Key Enums
+
+| Enum | Values |
+|------|--------|
+| `user_role` | `subscriber`, `employee`, `attorney`, `admin` |
+| `letter_status` | `submitted`, `researching`, `drafting`, `generated_locked`, `generated_unlocked`, `upsell_dismissed`, `pending_review`, `under_review`, `needs_changes`, `approved`, `rejected` |
+| `version_type` | `ai_draft`, `attorney_edit`, `final_approved` |
+| `actor_type` | `system`, `subscriber`, `employee`, `attorney`, `admin` |
 
 ---
 
@@ -246,439 +216,129 @@ submitted → researching → drafting → generated_locked
 
 ```
 client/src/
+├── _core/              # Auth hooks, providers
 ├── pages/
-│   ├── public/
-│   │   ├── Home.tsx              # Landing page
-│   │   ├── Pricing.tsx           # Pricing page
-│   │   ├── Login.tsx             # Login form
-│   │   ├── Signup.tsx            # Signup form
-│   │   └── ForgotPassword.tsx    # Password reset
-│   ├── subscriber/
-│   │   ├── Dashboard.tsx         # Subscriber home
-│   │   ├── SubmitLetter.tsx      # Intake form
-│   │   ├── MyLetters.tsx         # Letter list
-│   │   ├── LetterDetail.tsx      # Letter view + paywall
-│   │   ├── Billing.tsx           # Subscription management
-│   │   ├── Profile.tsx           # User profile
-│   │   └── Receipts.tsx          # Payment history
-│   ├── attorney/
-│   │   ├── Dashboard.tsx         # Attorney home (stats)
-│   │   ├── ReviewQueue.tsx       # Letters to review
-│   │   └── ReviewDetail.tsx      # Full review interface
-│   ├── employee/
-│   │   ├── Dashboard.tsx         # Employee home (referrals)
-│   │   ├── Referrals.tsx         # Referral links
-│   │   └── Earnings.tsx          # Commission history
-│   └── admin/
-│       ├── Dashboard.tsx         # Admin stats
-│       ├── AllLetters.tsx        # All letters (filter)
-│       ├── LetterDetail.tsx      # Audit view
-│       ├── Users.tsx             # User management
-│       └── Jobs.tsx              # Pipeline jobs
+│   ├── public/         # Login, Signup, ForgotPassword, ResetPassword, FAQ
+│   ├── subscriber/     # Dashboard, SubmitLetter, MyLetters, LetterDetail, Billing, Receipts, Profile
+│   ├── attorney/       # Dashboard
+│   ├── employee/       # Dashboard, ReviewQueue, ReviewDetail, AffiliateDashboard
+│   └── admin/          # Dashboard, AllLetters, LetterDetail, Users, Jobs, Affiliate
 ├── components/
-│   ├── shared/
-│   │   ├── AppLayout.tsx         # Main layout + sidebar
-│   │   ├── ReviewModal.tsx       # Review interface
-│   │   ├── RichTextEditor.tsx    # Attorney editor
-│   │   ├── StatusBadge.tsx       # Status display
-│   │   └── StatusTimeline.tsx    # Status history
-│   ├── LetterPaywall.tsx         # Payment prompt
-│   ├── PipelineProgressModal.tsx # Generation progress
-│   ├── ProtectedRoute.tsx        # Role-based routing
-│   ├── ErrorBoundary.tsx         # Error handling
-│   └── ui/                       # Radix UI components
-├── hooks/
-│   ├── useAuth.ts                # Auth state
-│   ├── useLetterRealtime.ts      # Supabase realtime
-│   └── useTrpc.ts                # tRPC client
+│   ├── shared/         # AppLayout, StatusBadge, StatusTimeline, ProtectedRoute
+│   ├── ui/             # shadcn/ui primitives
+│   ├── LetterPaywall.tsx
+│   ├── PipelineProgressModal.tsx
+│   ├── ReviewModal.tsx
+│   └── OnboardingModal.tsx
 ├── lib/
-│   ├── trpc.ts                   # tRPC client setup
-│   ├── supabase.ts               # Supabase client
-│   └── utils.ts                  # Utilities
-└── App.tsx                       # Main router (Wouter)
+│   └── trpc.ts         # tRPC client setup
+└── App.tsx             # Route definitions
 ```
 
-### Key Components
+### Route Structure
 
-| Component | Purpose |
-|-----------|---------|
-| `ProtectedRoute` | Role-based route guarding |
-| `AppLayout` | Sidebar + main content layout |
-| `ReviewModal` | Attorney review interface (inline editor) |
-| `LetterPaywall` | Payment prompt for locked letters |
-| `PipelineProgressModal` | Real-time generation progress |
-| `RichTextEditor` | Attorney edits (Tiptap) |
-| `StatusTimeline` | Visual status history |
-
-### Routing (Wouter)
-
-**File:** `client/src/App.tsx`
-
-```
-/                           → Home (public)
-/pricing                    → Pricing (public)
-/login                      → Login (public)
-/signup                     → Signup (public)
-/forgot-password            → Password reset (public)
-
-/subscriber                 → Dashboard (subscriber)
-/submit                     → Intake form (subscriber)
-/letters                    → My letters (subscriber)
-/letters/:id                → Letter detail (subscriber)
-/subscriber/billing         → Billing (subscriber)
-/subscriber/profile         → Profile (subscriber)
-
-/attorney                   → Dashboard (attorney)
-/attorney/queue             → Review queue (attorney)
-/attorney/:id               → Review detail (attorney)
-
-/employee                   → Dashboard (employee)
-/employee/referrals         → Referral links (employee)
-/employee/earnings          → Earnings (employee)
-
-/admin                      → Dashboard (admin)
-/admin/letters              → All letters (admin)
-/admin/letters/:id          → Letter audit (admin)
-/admin/users                → User management (admin)
-/admin/jobs                 → Pipeline jobs (admin)
-```
+| Route | Page | Role |
+|-------|------|------|
+| `/dashboard` | SubscriberDashboard | subscriber |
+| `/submit` | SubmitLetter | subscriber |
+| `/letters` | MyLetters | subscriber |
+| `/letters/:id` | LetterDetail | subscriber |
+| `/subscriber/billing` | Billing | subscriber |
+| `/subscriber/receipts` | Receipts | subscriber |
+| `/profile` | Profile | any authenticated |
+| `/attorney` | AttorneyDashboard | attorney, admin |
+| `/attorney/queue` | ReviewQueue | attorney, employee, admin |
+| `/attorney/:id` | ReviewDetail | attorney, employee, admin |
+| `/employee` | EmployeeDashboard | employee |
+| `/employee/affiliate` | AffiliateDashboard | employee |
+| `/admin` | AdminDashboard | admin |
+| `/admin/users` | Users | admin |
+| `/admin/jobs` | Jobs | admin |
+| `/admin/letters` | AllLetters | admin |
+| `/admin/letters/:id` | AdminLetterDetail | admin |
+| `/admin/affiliate` | AdminAffiliate | admin |
 
 ---
 
-## Shared Code
+## Email Templates (9)
 
-### Types
-
-**File:** `shared/types.ts`
-
-**Key Types:**
-- `User` — User account
-- `LetterRequest` — Letter submission
-- `LetterVersion` — Draft/approved version
-- `IntakeJson` — Intake form data
-- `ResearchPacket` — Research output
-- `DraftOutput` — Draft output
-- `ReviewAction` — Audit trail entry
-- `Subscription` — Stripe subscription
-
-**Status Enums:**
-- `LetterStatus` — 10 states (submitted, researching, drafting, generated_locked, pending_review, under_review, approved, rejected, needs_changes)
-- `ReviewActionType` — Action types (claimed, approved, rejected, etc.)
-
-### Constants
-
-**File:** `shared/const.ts`
-
-- `PLANS` — Pricing plans (free_trial, per_letter, monthly_basic, monthly_pro)
-- `LETTER_TYPES` — Available letter types
-- `ALLOWED_TRANSITIONS` — Valid status transitions
-
-### Pricing
-
-**File:** `shared/pricing.ts`
-
-- `LETTER_UNLOCK_PRICE_CENTS` — $200 (20000)
-- `MONTHLY_BASIC_PRICE_CENTS` — $499 (49900)
-- `MONTHLY_PRO_PRICE_CENTS` — $699 (69900)
+| Template | Trigger | Recipient |
+|----------|---------|-----------|
+| `sendLetterSubmissionEmail` | Letter submitted | Subscriber |
+| `sendLetterReadyEmail` | Pipeline completes (`generated_locked`) | Subscriber |
+| `sendLetterUnlockedEmail` | Payment confirmed | Subscriber |
+| `sendLetterApprovedEmail` | Attorney approves | Subscriber |
+| `sendLetterRejectedEmail` | Attorney rejects | Subscriber |
+| `sendNeedsChangesEmail` | Attorney requests changes | Subscriber |
+| `sendStatusUpdateEmail` | Generic status change | Subscriber |
+| `sendNewReviewNeededEmail` | Letter reaches `pending_review` | Attorneys/Admins |
+| `sendJobFailedAlertEmail` | Pipeline job fails | Admins |
 
 ---
 
-## Environment Variables
+## Employee Affiliate System
 
-**Required:**
-- `ANTHROPIC_API_KEY` — Claude API key
-- `PERPLEXITY_API_KEY` — Perplexity Sonar API key
-- `STRIPE_SECRET_KEY` — Stripe secret key
-- `STRIPE_WEBHOOK_SECRET` — Webhook signing secret
-- `SUPABASE_DATABASE_URL` — PostgreSQL connection
-- `RESEND_API_KEY` — Email service
-- `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` — Rate limiting
-
-**Optional:**
-- `N8N_WEBHOOK_URL` — n8n fallback (dormant)
-- `SENTRY_DSN` — Error tracking
-- `APP_BASE_URL` — Production domain
+- Employees get a unique discount code on onboarding
+- Discount codes give subscribers a percentage off per-letter pricing
+- Commissions tracked in `commission_ledger` (5% of payment)
+- Employees can request payouts
+- Admin can approve/reject payouts
+- Admin has full affiliate oversight (codes, commissions, payouts)
 
 ---
 
 ## Data Flow Examples
 
-### Example 1: Submit Letter → Generate → Review
+### Submit Letter → Generate → Review → Approve
 
 ```
-1. Subscriber fills intake form
-   → client/src/pages/subscriber/SubmitLetter.tsx
-   → calls letters.submit tRPC
-
-2. Server creates letter_request (status: submitted)
-   → server/routers.ts: letters.submit
-   → server/db.ts: createLetterRequest()
-
-3. Pipeline runs asynchronously
-   → server/pipeline.ts: runLetterPipeline()
-   → Stage 1: Research (Perplexity)
-   → Stage 2: Draft (Claude)
-   → Stage 3: Assembly (Claude)
-
-4. Letter reaches generated_locked
-   → server/email.ts: sendLetterReadyEmail()
-   → client shows paywall
-
-5. Subscriber pays $200
-   → client/src/components/LetterPaywall.tsx
-   → calls billing.payToUnlock tRPC
-   → Stripe checkout
-
-6. Stripe webhook fires
-   → server/stripeWebhook.ts: checkout.session.completed
-   → Updates status to pending_review
-
-7. Attorney reviews letter
-   → client/src/pages/attorney/ReviewDetail.tsx
-   → calls review.claim, review.approve, etc.
-   → PDF generated and sent
-```
-
-### Example 2: Subscription Management
-
-```
-1. Subscriber chooses plan
-   → client/src/pages/subscriber/Billing.tsx
-   → calls billing.createCheckout tRPC
-
-2. Server creates Stripe checkout session
-   → server/stripe.ts: createSubscriptionCheckout()
-   → Returns checkout URL
-
-3. Subscriber completes payment
-   → Stripe webhook fires
-
-4. Server creates subscription record
-   → server/stripeWebhook.ts: customer.subscription.created
-   → server/db.ts: createSubscription()
-
-5. Subscriber can now submit letters
-   → billing.checkCanSubmit validates plan
+1. Subscriber fills intake form → client/src/pages/subscriber/SubmitLetter.tsx
+2. calls letters.submit tRPC → server/routers/letters.ts
+3. Creates letter_request (status: submitted) → server/db.ts
+4. Pipeline runs async → server/pipeline.ts
+   → Stage 1: Research (Perplexity) → status: researching
+   → Stage 2: Draft (Claude) → status: drafting
+   → Stage 3: Assembly (Claude) → status: generated_locked
+5. Email sent: "Your letter is ready" → server/email.ts
+6. Subscriber sees paywall → client/src/components/LetterPaywall.tsx
+7. Pays $29 → Stripe checkout → server/stripeWebhook.ts → status: pending_review
+8. Attorney claims → review.claim → status: under_review
+9. Attorney edits & approves → review.approve → status: approved
+10. PDF generated → server/pdfGenerator.ts → uploaded to Supabase Storage
+11. Email sent: "Your letter is approved" with PDF link
+12. Subscriber downloads PDF from My Letters
 ```
 
 ---
 
-## Testing
+## Environment Variables
 
-**Unit Tests:** `vitest` (run via `pnpm test`)
-
-**Integration Tests:** Manual testing via dev server
-
-**E2E Tests:** None (manual testing recommended)
-
----
-
-## Deployment
-
-**Build:** `pnpm build`
-- Vite builds React frontend → `dist/public/`
-- esbuild bundles Express backend → `dist/index.js`
-
-**Start:** `pnpm start`
-- Runs `dist/index.js` (Node.js server)
-- Serves frontend from `dist/public/`
-
-**Environment:** Production env vars must be set before start
+| Variable | Purpose |
+|----------|---------|
+| `ANTHROPIC_API_KEY` | Claude API (Stages 2 & 3) |
+| `PERPLEXITY_API_KEY` | Research API (Stage 1) |
+| `STRIPE_SECRET_KEY` | Stripe server-side |
+| `STRIPE_PUBLISHABLE_KEY` | Stripe client-side |
+| `STRIPE_WEBHOOK_SECRET` | Stripe webhook verification |
+| `SUPABASE_DATABASE_URL` | PostgreSQL connection |
+| `SUPABASE_URL` | Supabase project URL |
+| `SUPABASE_ANON_KEY` | Supabase anonymous key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key |
+| `RESEND_API_KEY` | Email (Resend) |
+| `SENTRY_DSN` | Error monitoring |
+| `UPSTASH_REDIS_REST_URL` | Rate limiting |
+| `UPSTASH_REDIS_REST_TOKEN` | Rate limiting |
+| `N8N_WEBHOOK_URL` | n8n webhook (dormant) |
 
 ---
 
-## Future Refactoring
+## Security
 
-See `REFACTOR_ROADMAP.md` for planned improvements.
-
----
-
-## Related Documentation
-
-- **Letter Generation Pipeline:** `docs/skills/letter-generation-pipeline/SKILL.md`
-- **Letter Review Pipeline:** `docs/skills/letter-review-pipeline/SKILL.md`
-- **Database Schema:** `drizzle/schema.ts` (with inline comments)
-- **API Reference:** tRPC procedures in `server/routers.ts`
-
----
-
-## Project TODO Tracker
-
-> **Last Updated:** 2026-03-04
-> **Purpose:** Shared TODO list across all coding agents (GitHub Copilot, Claude, Codex, etc.)
-> **Usage:** Mark items as `[x]` when completed. All agents should continue from the last completed item.
-
-### Phase 1: Foundation
-- [x] Database schema (users roles, letter_requests, letter_versions, review_actions, workflow_jobs, research_runs, attachments, notifications)
-- [x] Status machine enum and transition validation (submitted → researching → drafting → pending_review → under_review → approved/rejected/needs_changes, NO draft state)
-- [x] Global design system (color palette, typography, theme)
-
-### Phase 2: Auth & Navigation
-- [x] Role-based user system (subscriber, employee, admin)
-- [x] Role-based routing and navigation
-- [x] DashboardLayout with sidebar for each role (AppLayout component)
-- [x] Login/auth flow with role detection and auto-redirect
-
-### Phase 3: Subscriber Portal
-- [x] Multi-step letter intake form (jurisdiction, matter type, parties, facts, desired outcome)
-- [x] File upload for attachments (S3 integration)
-- [x] My Letters list page with status badges
-- [x] Letter detail page (status timeline, intake summary, final approved letter only)
-- [x] Secure data isolation — subscribers never see AI drafts or research
-
-### Phase 4: Employee/Attorney Review Center
-- [x] Review queue with filtering (pending_review, under_review, needs_changes)
-- [x] Review detail page with intake panel, AI draft editor, research panel
-- [x] Claim/assign letter for review
-- [x] Save attorney edit version
-- [x] Approve/reject/request changes actions
-- [x] Review actions audit trail
-
-### Phase 5: Admin Dashboard
-- [x] Failed jobs monitor
-- [x] Retry failed pipeline jobs
-- [x] System health overview (queue counts, status distribution)
-- [x] User management (role assignment)
-
-### Phase 6: AI Pipeline
-- [x] Stage 1: Perplexity API research (jurisdiction rules, statutes, case law)
-- [x] Research packet validation gate
-- [x] Stage 2: OpenAI drafting from validated research
-- [x] Draft parser/validator
-- [x] Pipeline orchestration (status transitions, job logging)
-- [x] Failure handling and retry logic
-
-### Phase 6b: High-Priority Additions
-- [x] Deterministic research packet validator (validateResearchPacket)
-- [x] Deterministic draft JSON parser/validator (parseAndValidateDraftLlmOutput)
-- [x] Subscriber-safe detail endpoint (never returns ai_draft/attorney edits/internal research)
-- [x] Notification system via Resend email (subscriber: needs_changes/approved/rejected; attorney/admin: pending_review/failed jobs)
-- [x] Transactional email templates: status change, approval, rejection, needs_changes, new_review_needed
-- [x] Resend API key configuration (via webdev_request_secrets)
-- [x] Claim/assignment locking in attorney review queue
-- [x] Retry failed job controls for admins
-- [x] Idempotency protections for duplicate submissions/retries
-- [x] Note visibility (internal vs user_visible) in review actions
-- [x] Final approved version generation on approval (freeze version + current_final_version_id)
-- [ ] PDF export / downloadable output for final letters (future enhancement)
-
-### Phase 7: Testing & Delivery
-- [x] Vitest unit tests for critical paths (29 tests passing)
-- [x] End-to-end verification (TypeScript clean, server healthy)
-- [ ] Save checkpoint and deliver
-
-### Future Enhancements
-- [ ] PDF export for final approved letters
-- [ ] n8n workflow integration for letter generation
-- [ ] Stripe payment integration for subscriptions
-- [ ] Mobile PWA optimization
-
-### Phase 8: E2E Workflow Audit & Fix
-- [x] Audit intake form fields → pipeline input mapping
-- [x] Add 3rd AI stage: Claude/Anthropic final letter assembly (combines research + draft into professional letter)
-- [x] Ensure pipeline status transitions fire correctly: submitted → researching → drafting → pending_review
-- [x] Ensure review center claim/approve/reject correctly updates status and creates final version
-- [x] Ensure approved letter appears in subscriber My Letters with full content
-- [x] Ensure subscriber detail page shows final approved letter (not AI drafts/research)
-
-### Phase 9: Stripe Payment Integration
-- [ ] Add Stripe feature via webdev_add_feature
-- [ ] Subscription plans: per-letter ($299), monthly ($200/mo unlimited), annual ($2000/yr 48 letters)
-- [ ] Checkout session creation with metadata
-- [ ] Webhook handler for checkout.session.completed
-- [ ] Atomic subscription activation (prevent race conditions)
-- [ ] Commission tracking (5% employee referral)
-- [ ] Employee coupon system (20% discount on per-letter)
-- [ ] Pricing page UI
-- [ ] Credit/letter allowance enforcement before letter submission
-
-### Phase 10: Spec Compliance Patches (from pasted_content_4)
-- [ ] Add buildNormalizedPromptInput helper (trim strings, safe defaults, filter empty rows)
-- [ ] Strengthen validateResearchPacket: require sourceUrl+sourceTitle per rule, prefer >= 3 rules
-- [ ] Add subscriber updateForChanges mutation (re-submit after needs_changes)
-- [ ] Add admin forceStatusTransition mutation (audited)
-- [x] Add frontend polling/revalidation for researching/drafting/pending_review statuses
-- [ ] Add status timeline component in subscriber LetterDetail
-- [ ] Add subscriber update form when status is needs_changes
-- [ ] Verify success path E2E (submit → research → draft → assembly → pending_review → claim → approve → subscriber sees final)
-- [ ] Verify failure path (invalid research stops pipeline, invalid draft stops pipeline)
-- [ ] Verify security (subscriber cannot access ai_draft/research/internal notes)
-
-### Phase 12: Stripe Payment Integration
-- [x] Fix TypeScript error in AdminLetterDetail page
-- [x] Add Stripe scaffold via webdev_add_feature
-- [x] Configure STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY
-- [x] Create subscriptions and payments tables in database
-- [x] Create Stripe products/prices: per-letter ($29), monthly ($79/mo), annual ($599/yr)
-- [x] Build checkout session endpoint (tRPC)
-- [x] Build Stripe webhook handler (subscription events, payment events)
-- [x] Build subscription status checker middleware
-- [x] Build billing portal redirect endpoint
-- [x] Build Pricing page with 3 plans
-- [x] Build Subscription status component in subscriber dashboard
-- [x] Gate letter submission behind active subscription or available credits
-- [x] Show upgrade prompt when subscriber has no active plan
-- [x] Admin: view subscriber subscription status
-- [x] Run tests and save checkpoint (29/29 passing, 0 TS errors)
-
-### Phase 11: n8n Workflow Integration & Frontend Polish
-- [ ] Get n8n workflow webhook URL for the best legal letter workflow
-- [ ] Activate the n8n workflow so webhook is live
-- [ ] Update pipeline.ts to call n8n webhook as primary, with in-app AI fallback
-- [ ] Add N8N_WEBHOOK_URL as environment variable
-- [ ] Build admin letter detail page with force status transition dialog
-- [ ] Add polling/revalidation to employee ReviewDetail for in-progress statuses
-- [ ] Verify TypeScript compiles cleanly
-- [ ] Run all tests
-
-### Phase 13: Dashboard Enhancement — Letters History & Payment Receipts
-- [ ] Audit current subscriber dashboard, MyLetters, and Billing pages
-- [ ] Add backend: letters list with search/filter/sort/pagination (tRPC)
-- [ ] Add backend: payment receipts list from Stripe invoices (tRPC)
-- [ ] Rebuild MyLetters page as full Letters History with search, filter by status/type/date, sort, pagination
-- [ ] Build Payment Receipts page with Stripe invoice history, amounts, dates, downloadable receipt links
-- [ ] Enhance subscriber Dashboard with summary stats (total letters, active subscription, credits used, pending reviews)
-- [ ] Add recent activity feed on dashboard (last 5 letters with status)
-- [ ] Add quick action cards on dashboard (Submit Letter, View Letters, Billing)
-- [ ] Run tests, verify, save checkpoint
-
-### Phase 14: Paywall Flow Revision + Dashboard Enhancements
-- [x] Add generated_locked status to schema enum and status machine
-- [x] Update DB migration to include generated_locked status
-- [x] Add payToUnlock mutation: create per-letter checkout, on success advance to pending_review
-- [x] Build LetterPaywall component: blurred AI draft preview + Pay Now button
-- [x] Update LetterDetail to show LetterPaywall when status = generated_locked
-- [x] Update pipeline to set status = generated_locked after AI assembly (instead of pending_review)
-- [x] Update Stripe webhook to handle letter unlock (generated_locked → pending_review)
-- [x] Update MyLetters list: generated_locked highlighted amber with "Unlock for $29" badge
-- [x] Update StatusTimeline: generated_locked step with amber lock icon
-- [x] Update StatusBadge: generated_locked shows "Ready to Unlock" in yellow
-- [x] Tests: 31/31 passing, 0 TypeScript errors
-- [ ] Build Payment Receipts page with invoice history, amounts, dates, receipt links (future)
-- [ ] Enhance subscriber Dashboard: subscription status widget, activity feed, quick action cards (future)
-- [ ] Add date range filter to Letters History (future)
-
-### Phase 15: Post-Submission Email Notifications
-- [x] Add sendLetterSubmissionEmail: branded confirmation email sent immediately after letter submission
-- [x] Add sendLetterReadyEmail: "your draft is ready" email sent when AI pipeline sets generated_locked
-- [x] Add sendLetterUnlockedEmail: payment confirmation email sent after Stripe unlock webhook
-- [x] Wire sendLetterSubmissionEmail into letters.submit mutation (routers.ts)
-- [x] Wire sendLetterReadyEmail into pipeline.ts Stage 3 completion (in-app pipeline path)
-- [x] Wire sendLetterReadyEmail into n8nCallback.ts completion (n8n pipeline path)
-- [x] Wire sendLetterUnlockedEmail into stripeWebhook.ts letter unlock handler
-- [x] Tests: 35/35 passing, 0 TypeScript errors
-
-### Phase 16: Dev Email Preview Endpoint
-- [x] Build server/emailPreview.ts: dev-only Express route at GET /api/dev/email-preview
-- [x] Index page: lists all 9 templates with HTML and plain-text preview links
-- [x] Per-template rendering: ?type=submission|letter_ready|unlocked|approved|rejected|needs_changes|new_review|job_failed|status_update
-- [x] Query param support: ?name=&subject=&letterId=&state=&letterType=&mode= for realistic preview data
-- [x] Guard: only active in NODE_ENV !== production (verified in tests)
-- [x] Dev toolbar overlay showing template name and subject line in browser
-- [x] Register route in server/_core/index.ts
-- [x] Vitest tests: route export, dev registration, production guard (3 new tests)
-- [x] Tests: 38/38 passing, 0 TypeScript errors
-
----
-
-**Note:** This TODO list is synchronized across all documentation files (`.github/copilot-instructions.md`, `.claude/skills/manus-talk-to-my-lawyer/SKILL.md`, `ARCHITECTURE.md`, and `todo.md`). When completing items, update this section in all files to maintain consistency.
+1. **Never expose AI drafts to subscribers** until payment complete
+2. **Never show internal review notes** to subscribers
+3. **Always verify email** before allowing protected actions
+4. **Use role guards** on all protected procedures
+5. **Validate input** with Zod schemas
+6. **Sanitize user input** before using in prompts
+7. **Never log sensitive data** (full intake, API keys)
+8. Row-Level Security (RLS) enabled on all tables in Supabase
