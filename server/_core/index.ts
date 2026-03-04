@@ -7,7 +7,6 @@ import express from "express";
 import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
-import { registerOAuthRoutes } from "./oauth";
 import { registerSupabaseAuthRoutes } from "../supabaseAuth";
 import { registerChatRoutes } from "./chat";
 import { registerN8nCallbackRoute } from "../n8nCallback";
@@ -63,8 +62,6 @@ async function startServer() {
 
   // Supabase Auth routes (signup, login, logout, refresh, forgot-password, reset-password)
   registerSupabaseAuthRoutes(app);
-  // Legacy Manus OAuth callback (kept for backward compatibility)
-  registerOAuthRoutes(app);
   // Chat API with streaming and tool calling
   registerChatRoutes(app);
   // n8n pipeline callback endpoint
