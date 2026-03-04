@@ -90,10 +90,9 @@ const tools = {
  * ```
  */
 export function registerChatRoutes(app: Express) {
-  const openai = createLLMProvider();
-
   app.post("/api/chat", async (req, res) => {
     try {
+      const openai = createLLMProvider();
       const { messages } = req.body;
 
       if (!messages || !Array.isArray(messages)) {
