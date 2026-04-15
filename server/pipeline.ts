@@ -2,13 +2,14 @@
  * Three-stage AI pipeline for legal letter generation:
  *
  * Stage 1: PERPLEXITY (sonar) — Legal research with web-grounded citations
- * Stage 2: MINIMAX (abab6.5s) — Initial draft generation from research packet
- * Stage 3: MINIMAX (abab6.5s) — Final professional letter assembly
+ * Stage 2: ANTHROPIC (claude-opus-4-5) — Initial draft generation from research packet
+ * Stage 3: ANTHROPIC (claude-opus-4-5) — Final professional letter assembly
  *
  * Each stage has deterministic validators before transitioning.
  * All stages log to workflow_jobs and research_runs for audit trail.
  */
 
+import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
 import { generateText } from "ai";
 import {
@@ -33,32 +34,38 @@ import { captureServerException, addServerBreadcrumb } from "./sentry";
 // MODEL PROVIDERS
 // ═══════════════════════════════════════════════════════
 
-// ── MiniMax — used for all stages (research, draft, assembly) ──
-function getMiniMaxClient() {
-  const apiKey = process.env.MINIMAX_API_KEY;
+// ── Anthropic (Claude) — direct API, used for Stage 2 (draft) and Stage 3 (assembly) ──
+function getAnthropicClient() {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey || apiKey.trim().length === 0) {
-    throw new Error("[Pipeline] MINIMAX_API_KEY is not set — cannot run pipeline stages");
+    throw new Error("[Pipeline] ANTHROPIC_API_KEY is not set — cannot run drafting or assembly stages");
   }
-  // MiniMax is OpenAI-compatible via their API
-  return createOpenAI({ apiKey, baseURL: "https://api.minimax.chat/v1", name: "minimax" });
+  return createAnthropic({ apiKey });
 }
 
-/** Stage 1: MiniMax abab6.5s-chat — web-grounded legal research */
+/** Stage 1: Perplexity sonar-pro — web-grounded legal research (direct API) */
 function getResearchModel() {
-  const client = getMiniMaxClient();
-  return { model: client.chat("MiniMax-abab6.5s-chat"), provider: "minimax" };
+  const apiKey = process.env.PERPLEXITY_API_KEY;
+  if (!apiKey || apiKey.trim().length === 0) {
+    console.warn("[Pipeline] PERPLEXITY_API_KEY is not set — falling back to Claude for research");
+    const anthropic = getAnthropicClient();
+    return { model: anthropic("claude-opus-4-5"), provider: "anthropic-fallback" };
+  }
+  // Perplexity is OpenAI-compatible — use @ai-sdk/openai with custom baseURL
+  const perplexity = createOpenAI({ apiKey, baseURL: "https://api.perplexity.ai", name: "perplexity" });
+  return { model: perplexity.chat("sonar-pro"), provider: "perplexity" };
 }
 
-/** Stage 2: MiniMax abab6.5s-chat — initial legal draft */
+/** Stage 2: Anthropic claude-opus-4-5 — initial legal draft (direct Anthropic API) */
 function getDraftModel() {
-  const client = getMiniMaxClient();
-  return client.chat("MiniMax-abab6.5s-chat");
+  const anthropic = getAnthropicClient();
+  return anthropic("claude-opus-4-5");
 }
 
-/** Stage 3: MiniMax abab6.5s-chat — final polished letter assembly */
+/** Stage 3: Anthropic claude-opus-4-5 — final polished letter assembly (direct Anthropic API) */
 function getAssemblyModel() {
-  const client = getMiniMaxClient();
-  return client.chat("MiniMax-abab6.5s-chat");
+  const anthropic = getAnthropicClient();
+  return anthropic("claude-opus-4-5");
 }
 
 // Timeout constants (ms)
