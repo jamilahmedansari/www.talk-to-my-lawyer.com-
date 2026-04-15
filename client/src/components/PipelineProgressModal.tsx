@@ -16,14 +16,28 @@ const PIPELINE_STAGES = [
   { key: "researching", label: "Legal Research", description: "Analyzing relevant laws and precedents" },
   { key: "drafting", label: "Drafting Letter", description: "AI is composing your legal letter" },
   { key: "generated_locked", label: "Draft Complete", description: "Your letter draft is ready for review" },
+  { key: "pending_review", label: "Attorney Review", description: "Awaiting attorney to claim and review" },
+  { key: "approved", label: "Approved", description: "Attorney has approved your letter" },
 ] as const;
+
+// Add review stages to the status order
+const STATUS_ORDER = [
+  "submitted",
+  "researching", 
+  "drafting",
+  "generated_locked",
+  "pending_review",
+  "under_review",
+  "approved",
+  "rejected",
+  "needs_changes",
+];
 
 type StageStatus = "completed" | "active" | "pending" | "error";
 
 function getStageStatus(currentStatus: string, stageKey: string): StageStatus {
-  const order = ["submitted", "researching", "drafting", "generated_locked"];
-  const currentIdx = order.indexOf(currentStatus);
-  const stageIdx = order.indexOf(stageKey);
+  const currentIdx = STATUS_ORDER.indexOf(currentStatus);
+  const stageIdx = STATUS_ORDER.indexOf(stageKey);
 
   if (currentIdx < 0) return "pending";
   if (stageIdx < currentIdx) return "completed";
@@ -56,8 +70,26 @@ export default function PipelineProgressModal({ open, onClose, letterId }: Pipel
   );
 
   const currentStatus = data?.letter?.status ?? "submitted";
-  const isComplete = currentStatus === "generated_locked";
+  const isPipelineComplete = ["generated_locked", "pending_review", "under_review", "approved", "rejected", "needs_changes"].includes(currentStatus);
+  const isApproved = currentStatus === "approved";
+  const isRejected = currentStatus === "rejected";
+  const needsChanges = currentStatus === "needs_changes";
+  
+  // Check if we're still in the generation phase
   const isPipelineActive = ["submitted", "researching", "drafting"].includes(currentStatus);
+  
+  // Determine overall modal state
+  const getModalState = () => {
+    if (isPipelineComplete && !isApproved && !isRejected && !needsChanges) {
+      return "draft_ready"; // generated_locked - ready for review
+    }
+    if (isApproved) return "approved";
+    if (isRejected) return "rejected";
+    if (needsChanges) return "needs_changes";
+    return "generating";
+  };
+  
+  const modalState = getModalState();
 
   // Elapsed time counter
   useEffect(() => {
@@ -79,12 +111,18 @@ export default function PipelineProgressModal({ open, onClose, letterId }: Pipel
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="w-5 h-5 text-primary" />
-            {isComplete ? "Letter Draft Ready!" : "Generating Your Letter"}
+            {modalState === "approved" ? "Letter Approved!" :
+             modalState === "rejected" ? "Letter Rejected" :
+             modalState === "needs_changes" ? "Revisions Requested" :
+             modalState === "draft_ready" ? "Draft Ready!" :
+             "Generating Your Letter"}
           </DialogTitle>
           <DialogDescription>
-            {isComplete
-              ? "Your AI-drafted letter is complete. Review the preview and submit for attorney review."
-              : `Our AI pipeline is working on your letter. This typically takes 1-2 minutes.`}
+            {modalState === "approved" ? "Your letter has been approved by our attorney. You can now view and download it." :
+             modalState === "rejected" ? "Your letter was not approved. Please contact support or submit a new request." :
+             modalState === "needs_changes" ? "The attorney has requested changes to your letter. Please review the feedback." :
+             modalState === "draft_ready" ? "Your AI-drafted letter is complete. Review the preview and submit for attorney review." :
+             `Our AI pipeline is working on your letter. This typically takes 1-2 minutes.`}
           </DialogDescription>
         </DialogHeader>
 
@@ -126,11 +164,27 @@ export default function PipelineProgressModal({ open, onClose, letterId }: Pipel
 
         {/* Actions */}
         <div className="flex justify-end gap-2 pt-2">
-          {isComplete && letterId ? (
+          {modalState === "draft_ready" && letterId && (
             <Button asChild>
               <Link href={`/letters/${letterId}`}>View Letter Draft</Link>
             </Button>
-          ) : (
+          )}
+          {modalState === "approved" && letterId && (
+            <Button asChild>
+              <Link href={`/letters/${letterId}`}>View Approved Letter</Link>
+            </Button>
+          )}
+          {modalState === "rejected" && (
+            <Button onClick={onClose}>
+              Close
+            </Button>
+          )}
+          {modalState === "needs_changes" && letterId && (
+            <Button asChild>
+              <Link href={`/letters/${letterId}`}>View Feedback</Link>
+            </Button>
+          )}
+          {["generating", "draft_ready"].includes(modalState) && (
             <Button variant="outline" onClick={onClose}>
               Continue in Background
             </Button>
