@@ -11,28 +11,10 @@
  *
  * The $100 upsell is optional. Users can always use the free path.
  */
-import { useState } from "react";
-import {
-  CheckCircle, ArrowRight, Shield, Gavel,
-  FileText, Gift, Loader2, Star,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
- * Free-trial flow:
- *   - Pipeline detected this is the user's first letter → set status to generated_unlocked.
- *   - User sees the FULL letter draft (no blur, no paywall).
- *   - Below the letter, an optional upsell card offers:
- *       A) "Submit for Attorney Review" for $100 (attorney_review_upsell Stripe checkout)
- *       B) "Keep my free copy" — dismisses the upsell, letter stays accessible.
- *
- * Copilot fix (comment 5): "Keep Free Copy" path is fully implemented — it calls
- * billing.dismissAttorneyReviewUpsell which marks the upsell as dismissed so the
- * card is not shown again on reload.
- */
 import { useState, useRef } from "react";
 import {
   Gift, Scale, CheckCircle, ArrowRight, X, Loader2, Star,
+  Shield, Gavel, FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,8 +29,6 @@ interface LetterFreeTrialUpsellProps {
   subject: string;
   /** Full AI draft content — shown without blur for free trial letters */
   draftContent?: string;
-  letterType: string;
-  subject: string;
 }
 
 export function LetterFreeTrialUpsell({
@@ -56,6 +36,8 @@ export function LetterFreeTrialUpsell({
   draftContent,
 }: LetterFreeTrialUpsellProps) {
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+  const popupRef = useRef<Window | null>(null);
 
   // Free unlock mutation (no charge)
   const freeUnlockMutation = trpc.billing.freeUnlock.useMutation({
@@ -73,86 +55,9 @@ export function LetterFreeTrialUpsell({
     onSuccess: (data) => {
       if (data.url) {
         setIsRedirecting(true);
-        window.location.href = data.url;
-      }
-    },
-    onError: (err) => {
-      toast.error("Payment could not be initiated", {
-        description: err.message || "Please try again in a moment.",
-      });
-      setIsRedirecting(false);
-    },
-  });
-
-  const isPaidPending = payForReviewMutation.isPending || isRedirecting;
-
-  const previewLines = draftContent?.split("\n") ?? [];
-  const hasDraft = previewLines.length > 0;
-
-  return (
-    <div className="space-y-5">
-
-      {/* ── Full Draft Preview (no blur for free trial) ── */}
-      {hasDraft && (
-        <Card>
-          <CardContent className="p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <FileText className="w-4 h-4 text-primary" />
-              <span className="text-sm font-semibold text-foreground">Your AI Draft</span>
-              <Badge variant="secondary" className="ml-auto text-xs bg-green-100 text-green-700 border-green-200">
-                Free Trial
-              </Badge>
-            </div>
-            <pre className="text-sm text-foreground whitespace-pre-wrap font-mono leading-relaxed">
-              {draftContent}
-            </pre>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* ── FREE PATH CTA ── */}
-      <div className="bg-gradient-to-r from-emerald-700 to-emerald-500 rounded-2xl p-6 text-white shadow-lg">
-        <div className="flex items-start gap-4 mb-5">
-          <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
-            <Gift className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h2 className="text-lg font-bold leading-tight">Your First Letter is Free!</h2>
-            <p className="text-sm text-white/80 mt-1">
-              Submit for attorney review at no cost. A licensed attorney will review, edit,
-              and approve your letter — completely free.
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
-          {[
-            { icon: Shield, text: "Licensed attorney review" },
-            { icon: CheckCircle, text: "Edits & approval included" },
-            { icon: FileText, text: "Professional PDF delivered" },
-          ].map(({ icon: Icon, text }) => (
-            <div key={text} className="flex items-center gap-2 bg-white/10 rounded-lg px-3 py-2">
-              <Icon className="w-4 h-4 text-white/80 flex-shrink-0" />
-              <span className="text-xs text-white/90">{text}</span>
-  letterType,
-  subject,
-}: LetterFreeTrialUpsellProps) {
-  const [isRedirecting, setIsRedirecting] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
-  // Ref to the blank popup opened synchronously on click so browsers don't block it.
-  // The popup's URL is set to the Stripe checkout URL once the mutation resolves.
-  const popupRef = useRef<Window | null>(null);
-
-  // $100 attorney review upsell checkout
-  const attorneyReviewMutation = trpc.billing.createAttorneyReviewCheckout.useMutation({
-    onSuccess: (data) => {
-      if (data.url) {
-        setIsRedirecting(true);
         if (popupRef.current && !popupRef.current.closed) {
-          // Navigate the already-open blank popup to the Stripe URL
           popupRef.current.location.href = data.url;
         } else {
-          // Fallback: popup was blocked — open normally
           window.open(data.url, "_blank");
         }
         popupRef.current = null;
@@ -162,13 +67,14 @@ export function LetterFreeTrialUpsell({
       }
     },
     onError: (err) => {
-      // Close the blank popup if the mutation failed
       if (popupRef.current && !popupRef.current.closed) {
         popupRef.current.close();
         popupRef.current = null;
       }
       setIsRedirecting(false);
-      toast.error("Could not start checkout", { description: err.message });
+      toast.error("Payment could not be initiated", {
+        description: err.message || "Please try again in a moment.",
+      });
     },
   });
 
@@ -184,6 +90,10 @@ export function LetterFreeTrialUpsell({
       toast.error("Could not dismiss upsell", { description: err.message });
     },
   });
+
+  const isPaidPending = payForReviewMutation.isPending || isRedirecting;
+  const previewLines = draftContent?.split("\n") ?? [];
+  const hasDraft = previewLines.length > 0;
 
   if (dismissed) {
     return (
@@ -205,195 +115,183 @@ export function LetterFreeTrialUpsell({
   }
 
   return (
-    <Card className="border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-              <Gift className="h-4 w-4 text-amber-600" />
+    <div className="space-y-5">
+      {/* ── Full Draft Preview (no blur for free trial) ── */}
+      {hasDraft && (
+        <Card>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <FileText className="w-4 h-4 text-primary" />
+              <span className="text-sm font-semibold text-foreground">Your AI Draft</span>
+              <Badge variant="secondary" className="ml-auto text-xs bg-green-100 text-green-700 border-green-200">
+                Free Trial
+              </Badge>
             </div>
-            <div>
-              <CardTitle className="text-base text-amber-900">
-                Your first letter is free!
-              </CardTitle>
-              <p className="text-xs text-amber-700 mt-0.5">
-                Your AI-drafted letter is ready. Want an attorney to review and sign off on it?
-              </p>
-            </div>
-          </div>
-          <Badge className="bg-amber-100 text-amber-800 border-amber-300 text-xs whitespace-nowrap">
-            Free Trial
-          </Badge>
-        </div>
-      </CardHeader>
+            <pre className="text-sm text-foreground whitespace-pre-wrap font-mono leading-relaxed">
+              {draftContent}
+            </pre>
+          </CardContent>
+        </Card>
+      )}
 
-      <CardContent className="space-y-4">
-        {/* Value props */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          {[
-            { icon: Scale, text: "Reviewed by a licensed attorney" },
-            { icon: CheckCircle, text: "Professionally approved & signed" },
-            { icon: Star, text: "Stronger legal standing" },
-          ].map(({ icon: Icon, text }) => (
-            <div
-              key={text}
-              className="flex items-center gap-2 bg-white/70 rounded-lg px-3 py-2 text-xs text-amber-900"
+      {/* ── Main Upsell Card ── */}
+      <Card className="border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50">
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                <Gift className="h-4 w-4 text-amber-600" />
+              </div>
+              <div>
+                <CardTitle className="text-base text-amber-900">
+                  Your first letter is free!
+                </CardTitle>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  Your AI-drafted letter is ready. Want an attorney to review and sign off on it?
+                </p>
+              </div>
+            </div>
+            <Badge className="bg-amber-100 text-amber-800 border-amber-300 text-xs whitespace-nowrap">
+              Free Trial
+            </Badge>
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-4">
+          {/* Value props */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            {[
+              { icon: Scale, text: "Reviewed by a licensed attorney" },
+              { icon: CheckCircle, text: "Professionally approved & signed" },
+              { icon: Star, text: "Stronger legal standing" },
+            ].map(({ icon: Icon, text }) => (
+              <div
+                key={text}
+                className="flex items-center gap-2 bg-white/70 rounded-lg px-3 py-2 text-xs text-amber-900"
+              >
+                <Icon className="h-3.5 w-3.5 text-amber-600 flex-shrink-0" />
+                {text}
+              </div>
+            ))}
+          </div>
+
+          <Separator className="bg-amber-200" />
+
+          {/* CTA row */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            {/* Primary: pay for attorney review */}
+            <Button
+              className="flex-1 bg-amber-600 hover:bg-amber-700 text-white"
+              onClick={() => {
+                popupRef.current = window.open("", "_blank");
+                payForReviewMutation.mutate({ letterId });
+              }}
+              disabled={
+                payForReviewMutation.isPending ||
+                isRedirecting ||
+                dismissMutation.isPending
+              }
             >
-              <Icon className="h-3.5 w-3.5 text-amber-600 flex-shrink-0" />
-              {text}
+              {payForReviewMutation.isPending || isRedirecting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Redirecting...
+                </>
+              ) : (
+                <>
+                  <Scale className="h-4 w-4 mr-2" />
+                  Submit for Attorney Review — $100
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </>
+              )}
+            </Button>
+
+            {/* Secondary: keep free copy and dismiss upsell */}
+            <Button
+              variant="outline"
+              className="border-amber-300 text-amber-800 hover:bg-amber-100 sm:w-auto"
+              onClick={() => dismissMutation.mutate({ letterId })}
+              disabled={
+                dismissMutation.isPending ||
+                payForReviewMutation.isPending ||
+                isRedirecting
+              }
+            >
+              {dismissMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <X className="h-4 w-4 mr-2" />
+                  Keep my free copy
+                </>
+              )}
+            </Button>
+          </div>
+
+          <p className="text-xs text-amber-700 text-center">
+            Choosing "Keep my free copy" saves your letter as-is. You can still submit
+            for attorney review later from the letter detail page.
+          </p>
+
+          {/* ── FREE PATH CTA ── */}
+          <div className="bg-gradient-to-r from-emerald-700 to-emerald-500 rounded-2xl p-6 text-white shadow-lg mt-4">
+            <div className="flex items-start gap-4 mb-5">
+              <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+                <Gift className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold leading-tight">Submit for Free Review</h2>
+                <p className="text-sm text-white/80 mt-1">
+                  Submit for attorney review at no cost. A licensed attorney will review, edit,
+                  and approve your letter — completely free.
+                </p>
+              </div>
             </div>
-          ))}
-        </div>
 
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div>
-            <span className="text-3xl font-extrabold text-white">$0</span>
-            <p className="text-xs text-white/60 mt-0.5">Free · Includes attorney review + PDF</p>
-          </div>
-          <Button
-            onClick={() => freeUnlockMutation.mutate({ letterId })}
-            disabled={freeUnlockMutation.isPending || isPaidPending}
-            size="lg"
-            className="bg-white text-emerald-800 hover:bg-white/90 font-bold shadow-md w-full sm:w-auto"
-          >
-            {freeUnlockMutation.isPending ? (
-              <span className="flex items-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Submitting...
-              </span>
-            ) : (
-              <span className="flex items-center gap-2">
-                <Gift className="w-4 h-4" />
-                Submit for Free Review
-                <ArrowRight className="w-4 h-4" />
-              </span>
-            )}
-          </Button>
-        </div>
-      </div>
-
-      {/* ── $100 UPSELL CTA (optional) ── */}
-      <div className="border border-amber-200 bg-amber-50/40 rounded-2xl p-6 shadow-sm">
-        <div className="flex items-start gap-4 mb-4">
-          <div className="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
-            <Star className="w-6 h-6 text-amber-600" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className="text-base font-bold text-foreground">Priority Attorney Review</h3>
-              <Badge className="bg-amber-500 text-white text-xs">Optional Upgrade</Badge>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+              {[
+                { icon: Shield, text: "Licensed attorney review" },
+                { icon: CheckCircle, text: "Edits & approval included" },
+                { icon: FileText, text: "Professional PDF delivered" },
+              ].map(({ icon: Icon, text }) => (
+                <div key={text} className="flex items-center gap-2 bg-white/10 rounded-lg px-3 py-2">
+                  <Icon className="w-4 h-4 text-white/80 flex-shrink-0" />
+                  <span className="text-xs text-white/90">{text}</span>
+                </div>
+              ))}
             </div>
-            <p className="text-sm text-muted-foreground">
-              Skip the queue and have a senior attorney review your letter with priority
-              turnaround. Includes the same professional PDF as the free path.
-            </p>
-          </div>
-        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
-          {[
-            { icon: Gavel, text: "Senior attorney assigned" },
-            { icon: Shield, text: "Priority queue placement" },
-            { icon: FileText, text: "Professional PDF delivered" },
-          ].map(({ icon: Icon, text }) => (
-            <div key={text} className="flex items-center gap-2 bg-amber-100/60 rounded-lg px-3 py-2">
-              <Icon className="w-4 h-4 text-amber-600 flex-shrink-0" />
-              <span className="text-xs text-amber-900">{text}</span>
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div>
+                <span className="text-3xl font-extrabold text-white">$0</span>
+                <p className="text-xs text-white/60 mt-0.5">Free · Includes attorney review + PDF</p>
+              </div>
+              <Button
+                onClick={() => freeUnlockMutation.mutate({ letterId })}
+                disabled={freeUnlockMutation.isPending || isPaidPending}
+                size="lg"
+                className="bg-white text-emerald-800 hover:bg-white/90 font-bold shadow-md w-full sm:w-auto"
+              >
+                {freeUnlockMutation.isPending ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Submitting...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    <Gift className="w-4 h-4" />
+                    Submit for Free Review
+                    <ArrowRight className="w-4 h-4" />
+                  </span>
+                )}
+              </Button>
             </div>
-          ))}
-        </div>
-
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div>
-            <span className="text-3xl font-extrabold text-foreground">$100</span>
-            <p className="text-xs text-muted-foreground mt-0.5">One-time · Priority review + PDF</p>
           </div>
-          <Button
-            onClick={() => payForReviewMutation.mutate({ letterId })}
-            disabled={isPaidPending || freeUnlockMutation.isPending}
-            size="lg"
-            variant="outline"
-            className="border-amber-400 text-amber-800 hover:bg-amber-100 font-bold w-full sm:w-auto"
-          >
-            {isPaidPending ? (
-              <span className="flex items-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Preparing checkout...
-              </span>
-            ) : (
-              <span className="flex items-center gap-2">
-                <Gavel className="w-4 h-4" />
-                Upgrade — Priority Review ($100)
-                <ArrowRight className="w-4 h-4" />
-              </span>
-            )}
-          </Button>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
-        <Separator className="bg-amber-200" />
-
-        {/* CTA row */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          {/* Primary: pay for attorney review */}
-          <Button
-            className="flex-1 bg-amber-600 hover:bg-amber-700 text-white"
-            onClick={() => {
-              // Open a blank popup synchronously in the click handler so browsers
-              // don't block it. The URL is set in onSuccess once Stripe responds.
-              popupRef.current = window.open("", "_blank");
-              attorneyReviewMutation.mutate({ letterId });
-            }}
-            disabled={
-              attorneyReviewMutation.isPending ||
-              isRedirecting ||
-              dismissMutation.isPending
-            }
-          >
-            {attorneyReviewMutation.isPending || isRedirecting ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                Redirecting...
-              </>
-            ) : (
-              <>
-                <Scale className="h-4 w-4 mr-2" />
-                Submit for Attorney Review — $100
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </>
-            )}
-          </Button>
-
-          {/* Secondary: keep free copy and dismiss upsell */}
-          <Button
-            variant="outline"
-            className="border-amber-300 text-amber-800 hover:bg-amber-100 sm:w-auto"
-            onClick={() => dismissMutation.mutate({ letterId })}
-            disabled={
-              dismissMutation.isPending ||
-              attorneyReviewMutation.isPending ||
-              isRedirecting
-            }
-          >
-            {dismissMutation.isPending ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                Saving...
-              </>
-            ) : (
-              <>
-                <X className="h-4 w-4 mr-2" />
-                Keep my free copy
-              </>
-            )}
-          </Button>
-        </div>
-
-        <p className="text-xs text-amber-700 text-center">
-          Choosing &ldquo;Keep my free copy&rdquo; saves your letter as-is. You can still submit
-          for attorney review later from the letter detail page.
-        </p>
-      </CardContent>
-    </Card>
   );
 }

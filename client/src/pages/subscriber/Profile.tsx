@@ -792,6 +792,9 @@ function AdminProfileSection() {
         </div>
       </CardContent>
     </Card>
+  );
+}
+
 // ─── Employee Profile Section ─────────────────────────────────────────────────
 function EmployeeProfileSection({ userId }: { userId: number }) {
   const discountQuery = trpc.affiliate.myCode.useQuery();

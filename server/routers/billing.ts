@@ -28,7 +28,6 @@ import {
   createAttorneyReviewCheckout,
   createBillingPortalSession,
   createCheckoutSession,
-  createAttorneyReviewCheckout,
   createLetterUnlockCheckout,
   getOrCreateStripeCustomer,
   getStripe,
@@ -317,13 +316,8 @@ export const billingRouter = router({
   }),
 
   /**
-   * Creates a $100 Stripe Checkout session for the optional attorney review upsell.
-   * Only valid when the letter is in generated_unlocked status (free trial).
-   */
-  payForAttorneyReview: subscriberProcedure
-    .input(z.object({ letterId: z.number() }))
    * Creates a $100 Stripe checkout for the attorney review upsell.
-   * Only available on generated_unlocked (free-trial) letters.
+   * Only available on generated_unlocked or upsell_dismissed letters.
    */
   createAttorneyReviewCheckout: subscriberProcedure
     .input(z.object({ letterId: z.number().int().positive() }))
@@ -331,10 +325,7 @@ export const billingRouter = router({
       await checkTrpcRateLimit("payment", `user:${ctx.user.id}`);
       const letter = await getLetterRequestSafeForSubscriber(input.letterId, ctx.user.id);
       if (!letter) throw new TRPCError({ code: "NOT_FOUND", message: "Letter not found" });
-      if (letter.status !== "generated_unlocked") {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Attorney review upsell is only available for free-trial letters (generated_unlocked)",
+
       // Allow both generated_unlocked (upsell not yet dismissed) and
       // upsell_dismissed (subscriber dismissed but then changed their mind)
       if (letter.status !== "generated_unlocked" && letter.status !== "upsell_dismissed") {
